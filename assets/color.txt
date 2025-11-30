@@ -1,0 +1,28 @@
+Primary Colors:
+Primary colors, as the ofﬁcial university colors, should appear as the most used colors.
+
+Pantone 144 C;
+C:2 M:44 Y:100 K:0
+R:242 G:159 B:0
+HEX:#F29F00 
+Pantone 298 C;
+C:70 M:15 Y:0 K:0
+R:57 G:169 B:220
+HEX:#39A9DC
+--------------------------------------------
+Secondary Colors:
+Pantone 7406 C
+C:5 M:20 Y:100 K:0
+R:246 G:201 B:0
+HEX:#F6C900
+--------------------------------------------
+Text Color:
+C:0 M:0 Y:0 K:100
+R:0 G:0 B:0
+HEX:#000000
+--------------------------------------------
+
+Text Font:
+Calibri Regular
+
+
