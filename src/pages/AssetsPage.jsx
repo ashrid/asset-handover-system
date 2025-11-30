@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import AssetForm from '../components/AssetForm'
 import AssetList from '../components/AssetList'
+import ExcelImportModal from '../components/ExcelImportModal'
 
 function AssetsPage() {
   const [assets, setAssets] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingAsset, setEditingAsset] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const [message, setMessage] = useState(null)
 
   useEffect(() => {
@@ -82,6 +84,31 @@ function AssetsPage() {
     setMessage(null)
   }
 
+  const handleImportSuccess = async (parsedData) => {
+    try {
+      const response = await fetch('/api/assets/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assets: parsedData })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to import assets')
+      }
+
+      const result = await response.json()
+      setMessage({
+        type: 'success',
+        text: `Successfully imported ${result.count} asset${result.count !== 1 ? 's' : ''}`
+      })
+      fetchAssets()
+      setTimeout(() => setMessage(null), 5000)
+    } catch (error) {
+      setMessage({ type: 'danger', text: error.message })
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-fadeIn">
       {message && (
@@ -112,13 +139,22 @@ function AssetsPage() {
               <h2 className="text-2xl font-bold gradient-text">
                 Assets
               </h2>
-              <button
-                className="btn-premium flex items-center gap-2"
-                onClick={() => setShowForm(true)}
-              >
-                <i className="fas fa-plus"></i>
-                <span>Add New Asset</span>
-              </button>
+              <div className="flex gap-3">
+                <button
+                  className="btn-secondary flex items-center gap-2"
+                  onClick={() => setShowImportModal(true)}
+                >
+                  <i className="fas fa-file-excel"></i>
+                  <span>Import from Excel</span>
+                </button>
+                <button
+                  className="btn-premium flex items-center gap-2"
+                  onClick={() => setShowForm(true)}
+                >
+                  <i className="fas fa-plus"></i>
+                  <span>Add New Asset</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -149,6 +185,12 @@ function AssetsPage() {
           />
         </div>
       )}
+
+      <ExcelImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportSuccess={handleImportSuccess}
+      />
     </div>
   )
 }

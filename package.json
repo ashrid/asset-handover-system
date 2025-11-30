@@ -22,11 +22,15 @@
     "better-sqlite3": "^12.1.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "nanoid": "^5.1.6",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.11",
     "pdfkit": "^0.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.2.0"
+    "react-router-dom": "^7.2.0",
+    "react-signature-canvas": "^1.1.0-alpha.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.17",
