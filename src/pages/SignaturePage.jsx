@@ -1,0 +1,621 @@
+import { useState, useEffect, useRef } from 'react'
+import { useParams } from 'react-router-dom'
+import SignatureCanvas from 'react-signature-canvas'
+
+function SignaturePage() {
+  const { token } = useParams()
+  const sigCanvas = useRef(null)
+
+  // State management
+  const [assignment, setAssignment] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [locationBuilding, setLocationBuilding] = useState('')
+  const [locationFloor, setLocationFloor] = useState('')
+  const [locationSection, setLocationSection] = useState('')
+  const [deviceType, setDeviceType] = useState('')
+  const [showDisputeModal, setShowDisputeModal] = useState(false)
+  const [disputeReason, setDisputeReason] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  // Fetch assignment data
+  useEffect(() => {
+    fetchAssignment()
+  }, [token])
+
+  const fetchAssignment = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch(`/api/handover/sign/${token}`)
+
+      if (response.status === 404) {
+        setError('Invalid signing link. Please check your email for the correct link.')
+        return
+      }
+
+      if (response.status === 410) {
+        setError('This signing link has expired. Please contact the administrator.')
+        return
+      }
+
+      if (response.status === 409) {
+        setError('This form has already been signed. Thank you!')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to load assignment data')
+      }
+
+      const data = await response.json()
+      setAssignment(data)
+    } catch (err) {
+      setError(err.message || 'An error occurred while loading the form')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const clearSignature = () => {
+    sigCanvas.current.clear()
+  }
+
+  const isSignatureEmpty = () => {
+    return sigCanvas.current.isEmpty()
+  }
+
+  const isFormValid = () => {
+    return (
+      locationBuilding.trim() !== '' &&
+      locationFloor.trim() !== '' &&
+      locationSection.trim() !== '' &&
+      deviceType.trim() !== '' &&
+      !isSignatureEmpty()
+    )
+  }
+
+  const handleSubmitSignature = async () => {
+    if (!isFormValid()) {
+      setMessage({
+        type: 'danger',
+        text: 'Please fill in all required fields and provide your signature'
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const signatureData = sigCanvas.current.toDataURL()
+
+      const response = await fetch(`/api/handover/submit-signature/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location_building: locationBuilding,
+          location_floor: locationFloor,
+          location_section: locationSection,
+          device_type: deviceType,
+          signature_data: signatureData
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to submit signature')
+      }
+
+      setMessage({
+        type: 'success',
+        text: 'Thank you! Your signature has been submitted successfully. You will receive a signed copy via email shortly.'
+      })
+
+      // Reload assignment to show signed state
+      setTimeout(() => {
+        fetchAssignment()
+      }, 2000)
+    } catch (err) {
+      setMessage({
+        type: 'danger',
+        text: err.message
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleSubmitDispute = async () => {
+    if (!disputeReason.trim()) {
+      setMessage({
+        type: 'danger',
+        text: 'Please provide a reason for the dispute'
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const response = await fetch(`/api/handover/dispute/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dispute_reason: disputeReason
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to submit dispute')
+      }
+
+      setMessage({
+        type: 'success',
+        text: 'Your dispute has been submitted. The administrator will contact you shortly.'
+      })
+      setShowDisputeModal(false)
+      setDisputeReason('')
+    } catch (err) {
+      setMessage({
+        type: 'danger',
+        text: err.message
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--theme-bg-primary)'
+      }}>
+        <div className="spinner-premium"></div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'var(--theme-bg-primary)',
+        padding: '20px'
+      }}>
+        <div className="premium-card" style={{ maxWidth: '500px', width: '100%', textAlign: 'center' }}>
+          <div className="card-body">
+            <i className="fas fa-exclamation-circle" style={{
+              fontSize: '64px',
+              color: 'var(--theme-danger)',
+              marginBottom: '20px'
+            }}></i>
+            <h2 className="gradient-text" style={{ marginBottom: '15px' }}>Access Error</h2>
+            <p style={{ color: 'var(--theme-text-secondary)', fontSize: '16px' }}>{error}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--theme-bg-primary)',
+      padding: '40px 20px'
+    }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h1 className="gradient-text" style={{ fontSize: '32px', marginBottom: '10px' }}>
+            Asset Handover Acknowledgement
+          </h1>
+          <p style={{ color: 'var(--theme-text-secondary)', fontSize: '16px' }}>
+            Ajman University - Main Store
+          </p>
+        </div>
+
+        {/* Notification Message */}
+        {message && (
+          <div className={`notification-premium ${message.type}`} style={{ marginBottom: '30px' }}>
+            {message.text}
+          </div>
+        )}
+
+        {/* Employee Information */}
+        <div className="premium-card" style={{ marginBottom: '30px' }}>
+          <div className="card-header">
+            <h2 style={{ margin: 0, fontSize: '20px' }}>Employee Information</h2>
+          </div>
+          <div className="card-body">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '20px'
+            }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-secondary)'
+                }}>Employee Name</label>
+                <div style={{
+                  padding: '10px 15px',
+                  background: 'var(--theme-bg-secondary)',
+                  borderRadius: '8px',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  {assignment.employee_name}
+                </div>
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-secondary)'
+                }}>Employee ID</label>
+                <div style={{
+                  padding: '10px 15px',
+                  background: 'var(--theme-bg-secondary)',
+                  borderRadius: '8px',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  {assignment.employee_id_number || 'N/A'}
+                </div>
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-secondary)'
+                }}>Email</label>
+                <div style={{
+                  padding: '10px 15px',
+                  background: 'var(--theme-bg-secondary)',
+                  borderRadius: '8px',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  {assignment.email}
+                </div>
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-secondary)'
+                }}>Office/College</label>
+                <div style={{
+                  padding: '10px 15px',
+                  background: 'var(--theme-bg-secondary)',
+                  borderRadius: '8px',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  {assignment.office_college || 'N/A'}
+                </div>
+              </div>
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '5px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-secondary)'
+                }}>Assignment Date</label>
+                <div style={{
+                  padding: '10px 15px',
+                  background: 'var(--theme-bg-secondary)',
+                  borderRadius: '8px',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  {formatDate(assignment.assigned_at)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Assigned Assets */}
+        <div className="premium-card" style={{ marginBottom: '30px' }}>
+          <div className="card-header">
+            <h2 style={{ margin: 0, fontSize: '20px' }}>Assigned Assets</h2>
+          </div>
+          <div className="card-body">
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table-premium">
+                <thead>
+                  <tr>
+                    <th>Asset Code</th>
+                    <th>Asset Type</th>
+                    <th>Description</th>
+                    <th>Model</th>
+                    <th>Serial Number</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assignment.assets && assignment.assets.length > 0 ? (
+                    assignment.assets.map((asset) => (
+                      <tr key={asset.id}>
+                        <td><strong>{asset.asset_code}</strong></td>
+                        <td>{asset.asset_type}</td>
+                        <td>{asset.description || 'N/A'}</td>
+                        <td>{asset.model || 'N/A'}</td>
+                        <td>{asset.serial_number || 'N/A'}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', color: 'var(--theme-text-secondary)' }}>
+                        No assets assigned
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Location Information */}
+        <div className="premium-card" style={{ marginBottom: '30px' }}>
+          <div className="card-header">
+            <h2 style={{ margin: 0, fontSize: '20px' }}>Location & Device Information</h2>
+          </div>
+          <div className="card-body">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '20px'
+            }}>
+              <div>
+                <label htmlFor="building" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  Building <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                </label>
+                <input
+                  id="building"
+                  type="text"
+                  className="input-premium"
+                  value={locationBuilding}
+                  onChange={(e) => setLocationBuilding(e.target.value)}
+                  placeholder="Enter building name/number"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="floor" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  Floor <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                </label>
+                <input
+                  id="floor"
+                  type="text"
+                  className="input-premium"
+                  value={locationFloor}
+                  onChange={(e) => setLocationFloor(e.target.value)}
+                  placeholder="Enter floor number"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="section" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  Section <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                </label>
+                <input
+                  id="section"
+                  type="text"
+                  className="input-premium"
+                  value={locationSection}
+                  onChange={(e) => setLocationSection(e.target.value)}
+                  placeholder="Enter section/room"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="deviceType" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  Device Type <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                </label>
+                <input
+                  id="deviceType"
+                  type="text"
+                  className="input-premium"
+                  value={deviceType}
+                  onChange={(e) => setDeviceType(e.target.value)}
+                  placeholder="e.g., Laptop, Desktop, Printer"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Signature */}
+        <div className="premium-card" style={{ marginBottom: '30px' }}>
+          <div className="card-header">
+            <h2 style={{ margin: 0, fontSize: '20px' }}>Digital Signature</h2>
+          </div>
+          <div className="card-body">
+            <p style={{
+              marginBottom: '15px',
+              color: 'var(--theme-text-secondary)',
+              fontSize: '14px'
+            }}>
+              Please sign in the box below to acknowledge receipt of the assigned assets.
+            </p>
+            <div style={{
+              border: '2px solid var(--theme-border)',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              marginBottom: '15px'
+            }}>
+              <SignatureCanvas
+                ref={sigCanvas}
+                canvasProps={{
+                  width: 600,
+                  height: 200,
+                  style: {
+                    width: '100%',
+                    height: '200px',
+                    background: 'white'
+                  }
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={clearSignature}
+              disabled={isSubmitting}
+            >
+              <i className="fas fa-eraser"></i> Clear Signature
+            </button>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{
+          display: 'flex',
+          gap: '15px',
+          justifyContent: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <button
+            type="button"
+            className="btn-premium"
+            onClick={handleSubmitSignature}
+            disabled={isSubmitting || !isFormValid()}
+            style={{ minWidth: '200px' }}
+          >
+            {isSubmitting ? (
+              <>
+                <span className="spinner-premium" style={{
+                  width: '16px',
+                  height: '16px',
+                  marginRight: '8px'
+                }}></span>
+                Submitting...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-check-circle"></i> Confirm & Sign
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setShowDisputeModal(true)}
+            disabled={isSubmitting}
+            style={{ minWidth: '200px' }}
+          >
+            <i className="fas fa-exclamation-triangle"></i> Dispute Assets
+          </button>
+        </div>
+
+        {/* Dispute Modal */}
+        {showDisputeModal && (
+          <div className="modal-overlay animate-fadeIn" onClick={() => !isSubmitting && setShowDisputeModal(false)}>
+            <div className="modal-content animate-scaleIn" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="card-header">
+                <h2 style={{ margin: 0, fontSize: '20px' }}>Dispute Assets</h2>
+              </div>
+              <div className="card-body">
+                <p style={{
+                  marginBottom: '15px',
+                  color: 'var(--theme-text-secondary)'
+                }}>
+                  Please explain why you are disputing the assigned assets. The administrator will review your concern and contact you.
+                </p>
+                <label htmlFor="disputeReason" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  Dispute Reason <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                </label>
+                <textarea
+                  id="disputeReason"
+                  className="input-premium"
+                  value={disputeReason}
+                  onChange={(e) => setDisputeReason(e.target.value)}
+                  placeholder="Enter your reason for disputing..."
+                  rows="5"
+                  disabled={isSubmitting}
+                  style={{ resize: 'vertical' }}
+                ></textarea>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowDisputeModal(false)}
+                    disabled={isSubmitting}
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-premium"
+                    onClick={handleSubmitDispute}
+                    disabled={isSubmitting || !disputeReason.trim()}
+                    style={{ flex: 1 }}
+                  >
+                    {isSubmitting ? 'Submitting...' : 'Submit Dispute'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default SignaturePage
