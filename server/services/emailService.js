@@ -65,7 +65,7 @@ export async function sendHandoverEmail({ email, employeeName, signingUrl, expir
       html: isSignedPDF
         ? `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
+            <div style="background: #0969da; padding: 30px; border-radius: 10px 10px 0 0;">
               <h2 style="color: white; margin: 0; font-size: 24px;">Asset Handover Confirmation</h2>
             </div>
             <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
@@ -82,14 +82,14 @@ export async function sendHandoverEmail({ email, employeeName, signingUrl, expir
         `
         : `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
+            <div style="background: #0969da; padding: 30px; border-radius: 10px 10px 0 0;">
               <h2 style="color: white; margin: 0; font-size: 24px;">Asset Handover - Signature Required</h2>
             </div>
             <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
               <p style="font-size: 16px; color: #333;">Dear ${employeeName},</p>
               <p style="font-size: 16px; color: #333;">${assetCount} asset${assetCount !== 1 ? 's have' : ' has'} been assigned to you. Please review and sign the acknowledgement form:</p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${signingUrl}" style="display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                <a href="${signingUrl}" style="display: inline-block; padding: 15px 40px; background: #0969da; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(9, 105, 218, 0.3);">
                   🔗 Sign Acknowledgement Form
                 </a>
               </div>
