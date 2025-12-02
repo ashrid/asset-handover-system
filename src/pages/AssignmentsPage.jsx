@@ -100,13 +100,13 @@ function AssignmentsPage() {
                       <strong className="text-text-primary">#{assignment.id}</strong>
                     </td>
                     <td className="text-text-secondary">
-                      {assignment.employee_name}
+                      {assignment.employee_name || '-'}
                     </td>
                     <td className="text-text-secondary">
                       {assignment.employee_id || '-'}
                     </td>
                     <td className="text-text-secondary">
-                      {assignment.email}
+                      {assignment.email || '-'}
                     </td>
                     <td className="text-text-secondary">
                       {assignment.office_college || '-'}
@@ -129,7 +129,7 @@ function AssignmentsPage() {
                     </td>
                     <td>
                       <button
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-primary to-secondary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2"
+                        className="btn-premium inline-flex items-center gap-2 text-sm py-2 px-4"
                         onClick={() => handleViewDetails(assignment.id)}
                       >
                         <i className="fas fa-eye"></i>
