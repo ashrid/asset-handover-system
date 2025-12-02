@@ -6,6 +6,7 @@ function HandoverPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [message, setMessage] = useState(null)
+  const [searchFilter, setSearchFilter] = useState('')
   const [employeeData, setEmployeeData] = useState({
     employee_name: '',
     employee_id: '',
@@ -45,11 +46,56 @@ function HandoverPage() {
   }
 
   const handleSelectAll = () => {
-    if (selectedAssets.length === assets.length) {
-      setSelectedAssets([])
+    const filtered = getFilteredAssets()
+    const allFilteredSelected = filtered.every(asset => selectedAssets.includes(asset.id))
+
+    if (allFilteredSelected && filtered.length > 0) {
+      // Deselect all filtered assets
+      setSelectedAssets(prev => prev.filter(id => !filtered.map(a => a.id).includes(id)))
     } else {
-      setSelectedAssets(assets.map(a => a.id))
+      // Select all filtered assets
+      const newSelected = [...selectedAssets]
+      filtered.forEach(asset => {
+        if (!newSelected.includes(asset.id)) {
+          newSelected.push(asset.id)
+        }
+      })
+      setSelectedAssets(newSelected)
     }
+  }
+
+  const getFilteredAssets = () => {
+    if (!searchFilter.trim()) {
+      return assets
+    }
+
+    const searchLower = searchFilter.toLowerCase().trim()
+    return assets.filter(asset => {
+      // Format date for searching (e.g., "January 15, 2024" or "01/15/2024")
+      let dateString = ''
+      if (asset.created_at) {
+        const date = new Date(asset.created_at)
+        dateString = date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }).toLowerCase()
+      }
+
+      return (
+        asset.asset_code?.toLowerCase().includes(searchLower) ||
+        asset.asset_type?.toLowerCase().includes(searchLower) ||
+        asset.description?.toLowerCase().includes(searchLower) ||
+        asset.model?.toLowerCase().includes(searchLower) ||
+        asset.manufacturer?.toLowerCase().includes(searchLower) ||
+        asset.serial_number?.toLowerCase().includes(searchLower) ||
+        dateString.includes(searchLower)
+      )
+    })
+  }
+
+  const clearFilter = () => {
+    setSearchFilter('')
   }
 
   const handleSubmit = async (e) => {
@@ -206,14 +252,47 @@ function HandoverPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mb-6 mt-8">
-            <h3 className="text-lg font-bold gradient-text">
-              Select Assets
-            </h3>
-            <span className="badge-premium badge-info whitespace-nowrap">
-              {selectedAssets.length} selected
-            </span>
+          <div className="flex items-center justify-between gap-3 mb-6 mt-8">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-bold gradient-text">
+                Select Assets
+              </h3>
+              <span className="badge-premium badge-info whitespace-nowrap">
+                {selectedAssets.length} selected
+              </span>
+            </div>
           </div>
+
+          {/* Search/Filter Section */}
+          {!loading && assets.length > 0 && (
+            <div className="mb-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by asset code, type, description, model, manufacturer, serial, or date added..."
+                  className="input-premium pl-10 pr-20"
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                />
+                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-text-light"></i>
+                {searchFilter && (
+                  <button
+                    type="button"
+                    onClick={clearFilter}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-light hover:text-text-primary transition-colors"
+                    title="Clear filter"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                )}
+              </div>
+              {searchFilter && (
+                <p className="text-sm text-text-secondary mt-2">
+                  Showing {getFilteredAssets().length} of {assets.length} assets
+                </p>
+              )}
+            </div>
+          )}
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
@@ -233,13 +312,23 @@ function HandoverPage() {
                   className="btn-secondary text-sm flex items-center gap-2"
                   onClick={handleSelectAll}
                 >
-                  <i className={`fas fa-${selectedAssets.length === assets.length ? 'times' : 'check-double'}`}></i>
-                  <span>{selectedAssets.length === assets.length ? 'Deselect All' : 'Select All'}</span>
+                  <i className={`fas fa-${getFilteredAssets().every(a => selectedAssets.includes(a.id)) && getFilteredAssets().length > 0 ? 'times' : 'check-double'}`}></i>
+                  <span>
+                    {getFilteredAssets().every(a => selectedAssets.includes(a.id)) && getFilteredAssets().length > 0
+                      ? `Deselect ${searchFilter ? 'Filtered' : 'All'}`
+                      : `Select ${searchFilter ? 'Filtered' : 'All'}`}
+                  </span>
                 </button>
               </div>
 
-              <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar border border rounded-lg p-4 bg-background/50">
-                {assets.map(asset => (
+              {getFilteredAssets().length === 0 ? (
+                <div className="notification-premium notification-info">
+                  <i className="fas fa-info-circle text-xl"></i>
+                  <span>No assets match your search criteria. Try a different search term.</span>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar border border rounded-lg p-4 bg-background/50">
+                  {getFilteredAssets().map(asset => (
                   <div
                     key={asset.id}
                     className={`p-4 border rounded-lg transition-all duration-200 ${
@@ -274,8 +363,9 @@ function HandoverPage() {
                       </div>
                     </label>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 

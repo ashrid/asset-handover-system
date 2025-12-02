@@ -215,7 +215,7 @@ router.get('/sign/:token', (req, res) => {
 router.post('/submit-signature/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    const { location_building, location_floor, location_section, signature_data } = req.body;
+    const { location_building, location_floor, location_section, device_type, signature_data } = req.body;
 
     // Validate required fields (only signature is required, location is optional)
     if (!signature_data) {
@@ -250,6 +250,7 @@ router.post('/submit-signature/:token', async (req, res) => {
         location_building = ?,
         location_floor = ?,
         location_section = ?,
+        device_type = ?,
         signature_data = ?,
         signature_date = ?,
         is_signed = 1
@@ -260,6 +261,7 @@ router.post('/submit-signature/:token', async (req, res) => {
       location_building || null,
       location_floor || null,
       location_section || null,
+      device_type || null,
       signature_data,
       now.toISOString(),
       token
@@ -272,7 +274,7 @@ router.post('/submit-signature/:token', async (req, res) => {
       WHERE ai.assignment_id = ?
     `).all(assignment.id);
 
-    // Generate signed PDF
+    // Generate signed PDF with signature data
     const pdfBuffer = await generateHandoverPDF({
       employee: {
         employee_name: assignment.employee_name,
@@ -280,7 +282,15 @@ router.post('/submit-signature/:token', async (req, res) => {
         email: assignment.email,
         office_college: assignment.office_college
       },
-      assets
+      assets,
+      signature: {
+        signature_data: signature_data,
+        signature_date: now.toISOString(),
+        location_building: location_building,
+        location_floor: location_floor,
+        location_section: location_section,
+        device_type: device_type
+      }
     });
 
     // Send signed PDF to both employee and admin
@@ -290,12 +300,130 @@ router.post('/submit-signature/:token', async (req, res) => {
       pdfBuffer
     });
 
+    // Update pdf_sent status after successful email send
+    const updatePdfStatus = db.prepare(`
+      UPDATE asset_assignments
+      SET pdf_sent = 1
+      WHERE id = ?
+    `);
+    updatePdfStatus.run(assignment.id);
+
     res.json({
       message: 'Signature submitted successfully',
       signed_at: now.toISOString()
     });
   } catch (error) {
     console.error('Error submitting signature:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete assignment (only if not signed)
+router.delete('/assignments/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if assignment exists
+    const assignment = db.prepare(`
+      SELECT * FROM asset_assignments WHERE id = ?
+    `).get(id);
+
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // Prevent deletion of signed assignments
+    if (assignment.is_signed) {
+      return res.status(403).json({
+        error: 'Cannot delete signed assignments'
+      });
+    }
+
+    // Delete assignment items first (foreign key constraint)
+    const deleteItems = db.prepare(`
+      DELETE FROM assignment_items WHERE assignment_id = ?
+    `);
+    deleteItems.run(id);
+
+    // Delete assignment
+    const deleteAssignment = db.prepare(`
+      DELETE FROM asset_assignments WHERE id = ?
+    `);
+    deleteAssignment.run(id);
+
+    res.json({
+      message: 'Assignment deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting assignment:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Resend signing email
+router.post('/resend/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get assignment by ID
+    const assignment = db.prepare(`
+      SELECT * FROM asset_assignments WHERE id = ?
+    `).get(id);
+
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // Check if already signed
+    if (assignment.is_signed) {
+      return res.status(400).json({
+        error: 'This assignment has already been signed'
+      });
+    }
+
+    // Check if token is expired
+    const now = new Date();
+    const expiresAt = new Date(assignment.token_expires_at);
+    if (now > expiresAt) {
+      return res.status(410).json({
+        error: 'The signing link has expired. Please create a new assignment.'
+      });
+    }
+
+    // Get assigned assets
+    const assets = db.prepare(`
+      SELECT a.* FROM assets a
+      JOIN assignment_items ai ON a.id = ai.asset_id
+      WHERE ai.assignment_id = ?
+    `).all(id);
+
+    // Generate signing URL
+    const signingUrl = `http://localhost:3000/sign/${assignment.signature_token}`;
+
+    // Resend email with signing link
+    await sendHandoverEmail({
+      email: assignment.email,
+      employeeName: assignment.employee_name,
+      signingUrl: signingUrl,
+      expiresAt: expiresAt,
+      assetCount: assets.length
+    });
+
+    // Update reminder count
+    const updateReminder = db.prepare(`
+      UPDATE asset_assignments
+      SET
+        reminder_count = reminder_count + 1,
+        last_reminder_sent = ?
+      WHERE id = ?
+    `);
+    updateReminder.run(now.toISOString(), id);
+
+    res.json({
+      message: 'Signing email resent successfully'
+    });
+  } catch (error) {
+    console.error('Error resending email:', error);
     res.status(500).json({ error: error.message });
   }
 });

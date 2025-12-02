@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Preview - Acknowledgement of Asset Receipt</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 15mm 15mm 15mm 15mm;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Helvetica', 'Arial', sans-serif;
+      font-size: 10pt;
+      color: #000000;
+      line-height: 1.4;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+
+    .page-container {
+      background-color: white;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 15mm;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .logo {
+      width: 299px;
+      height: 100px;
+      margin: 0 auto 10px;
+      display: block;
+      background-color: #e0e0e0;
+      border: 2px dashed #999;
+      line-height: 100px;
+      text-align: center;
+      font-size: 8pt;
+      color: #666;
+    }
+
+    .university-name {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #0066cc;
+      margin-bottom: 5px;
+    }
+
+    .main-store {
+      font-size: 12pt;
+      color: #0066cc;
+      margin-bottom: 10px;
+    }
+
+    .title {
+      font-size: 13pt;
+      font-weight: bold;
+      color: #000000;
+      margin-bottom: 10px;
+    }
+
+    .date-row {
+      text-align: right;
+      font-size: 9pt;
+      color: #666666;
+      margin-bottom: 15px;
+    }
+
+    .asset-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+
+    .asset-table th {
+      background-color: #f5f5f5;
+      border: 1px solid #000000;
+      padding: 5px;
+      font-size: 9pt;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .asset-table td {
+      border: 1px solid #000000;
+      padding: 5px;
+      font-size: 8pt;
+    }
+
+    .asset-table td.no {
+      text-align: center;
+      width: 35px;
+    }
+
+    .asset-table td.store-code {
+      width: 120px;
+    }
+
+    .asset-table td.description {
+      width: 260px;
+    }
+
+    .asset-table td.purchase-date {
+      width: 80px;
+    }
+
+    .section-title {
+      font-size: 9pt;
+      font-weight: bold;
+      color: #0066cc;
+      margin-top: 10px;
+      margin-bottom: 8px;
+    }
+
+    .user-details {
+      margin-bottom: 15px;
+    }
+
+    .detail-row {
+      font-size: 8pt;
+      margin-bottom: 8px;
+    }
+
+    .detail-label {
+      font-weight: bold;
+      display: inline;
+    }
+
+    .detail-value {
+      display: inline;
+    }
+
+    .location-section {
+      font-size: 8pt;
+      margin-bottom: 15px;
+    }
+
+    .location-text {
+      color: #000000;
+      margin-top: 5px;
+    }
+
+    .declaration {
+      font-size: 7pt;
+      text-align: justify;
+      margin-bottom: 15px;
+      line-height: 1.3;
+    }
+
+    .device-type-section {
+      margin-bottom: 15px;
+    }
+
+    .device-type-intro {
+      font-size: 7pt;
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+
+    .device-option {
+      margin-bottom: 12px;
+    }
+
+    .device-option-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .checkbox {
+      width: 8px;
+      height: 8px;
+      border: 1px solid #000000;
+      display: inline-block;
+      margin-right: 5px;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .checkbox.checked::after {
+      content: '✓';
+      position: absolute;
+      top: -3px;
+      left: 0px;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .device-label {
+      font-size: 8pt;
+      font-weight: bold;
+    }
+
+    .device-description {
+      font-size: 6.5pt;
+      margin-left: 13px;
+      line-height: 1.3;
+    }
+
+    .signature-section {
+      margin-top: 15px;
+    }
+
+    .signature-label {
+      font-size: 8pt;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .signature-placeholder {
+      width: 150px;
+      height: 60px;
+      border: 2px dashed #999;
+      background-color: #f9f9f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8pt;
+      color: #666;
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+
+    .signature-line {
+      width: 150px;
+      border-bottom: 1px solid #000000;
+      height: 30px;
+      margin-top: 5px;
+    }
+
+    .signature-date {
+      font-size: 6.5pt;
+      color: #666666;
+      margin-top: 5px;
+    }
+
+    .edit-note {
+      background-color: #fff3cd;
+      border: 1px solid #ffc107;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      max-width: 210mm;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .edit-note h3 {
+      margin-bottom: 10px;
+      color: #856404;
+    }
+
+    .edit-note p {
+      margin-bottom: 5px;
+      font-size: 9pt;
+    }
+
+    .edit-note code {
+      background-color: #f5f5f5;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="edit-note">
+    <h3>📝 PDF Template Preview</h3>
+    <p><strong>This is a live preview of your PDF template.</strong></p>
+    <p>To edit: Open <code>server/templates/handover-template.html</code> in your code editor</p>
+    <p>Changes you make to the template file will appear in generated PDFs</p>
+    <p>You can edit fonts, colors, spacing, and layout directly in the CSS</p>
+  </div>
+
+  <div class="page-container">
+    <!-- Header Section -->
+    <div class="header">
+      <div class="logo">LOGO</div>
+      <div class="university-name">Ajman University</div>
+      <div class="main-store">Main Store</div>
+      <div class="title">Acknowledgement of Asset Receipt</div>
+    </div>
+
+    <div class="date-row">
+      Date: December 2, 2025
+    </div>
+
+    <!-- Asset Table -->
+    <table class="asset-table">
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Store Code</th>
+          <th>Item Description</th>
+          <th>Purchase Date<br>/LPO</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="no">1</td>
+          <td class="store-code">LAP-2024-001</td>
+          <td class="description">Dell Latitude 5520 Laptop - Intel Core i7, 16GB RAM, 512GB SSD</td>
+          <td class="purchase-date">LPO-2024-123</td>
+        </tr>
+        <tr>
+          <td class="no">2</td>
+          <td class="store-code">MON-2024-045</td>
+          <td class="description">Dell 27" Monitor - UltraSharp U2722DE</td>
+          <td class="purchase-date">01/15/2024</td>
+        </tr>
+        <tr>
+          <td class="no">3</td>
+          <td class="store-code">KEY-2024-089</td>
+          <td class="description">Logitech Wireless Keyboard and Mouse Combo</td>
+          <td class="purchase-date">01/15/2024</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- User Details Section -->
+    <div class="section-title">User Details:</div>
+    <div class="user-details">
+      <div class="detail-row">
+        <span class="detail-label">Name:</span>
+        <span class="detail-value">John Smith</span>
+        <span style="margin-left: 100px;" class="detail-label">User ID:</span>
+        <span class="detail-value">EMP-12345</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">College / Office:</span>
+        <span class="detail-value">College of Engineering</span>
+      </div>
+    </div>
+
+    <!-- Location Section -->
+    <div class="section-title">Location:</div>
+    <div class="location-section">
+      <div class="location-text">Building: SZH | Floor: Ground | Section: IT Department</div>
+    </div>
+
+    <!-- Declaration Text -->
+    <div class="declaration">
+      I confirm that this device(s) is a property of Ajman University and to be returned back to AU Store after usage.
+      This device(s) can't be shifted to any other user/location without a written approval from the Store.
+    </div>
+
+    <!-- Device Type Section -->
+    <div class="device-type-section">
+      <div class="device-type-intro">Please select one of the following:</div>
+
+      <div class="device-option">
+        <div class="device-option-header">
+          <div class="checkbox checked"></div>
+          <div class="device-label">Office Device</div>
+        </div>
+        <div class="device-description">
+          I understand that I will be responsible for any misuse or damages that may occur.
+          I confirm that this device(s) will be used for work purpose only.
+        </div>
+      </div>
+
+      <div class="device-option">
+        <div class="device-option-header">
+          <div class="checkbox"></div>
+          <div class="device-label">Lab Device</div>
+        </div>
+        <div class="device-description">
+          I understand that the lab supervisor shall monitor the lab devices to avoid any misuse or damage.
+        </div>
+      </div>
+    </div>
+
+    <!-- Signature Section -->
+    <div class="signature-section">
+      <div class="signature-label">Employee Signature:</div>
+      <div class="signature-placeholder">Signature will appear here</div>
+      <div class="signature-date">Signed on: December 2, 2025, 10:30 AM</div>
+    </div>
+  </div>
+</body>
+</html>

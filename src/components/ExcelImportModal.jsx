@@ -10,9 +10,9 @@ function ExcelImportModal({ isOpen, onClose, onImportSuccess }) {
   const requiredColumns = ['asset_code', 'asset_type']
   const templateHeaders = [
     'asset_code', 'asset_type', 'description', 'model', 'serial_number',
-    'category_1', 'category_2', 'category_3', 'category_4',
-    'location_1', 'location_2', 'location_3', 'location_4',
-    'status', 'unit_cost', 'warranty_date', 'supplier', 'manufacturer', 'lpo_no', 'invoice_no'
+    'asset_category_1', 'asset_category_2', 'asset_category_3', 'asset_category_4',
+    'asset_location_1', 'asset_location_2', 'asset_location_3', 'asset_location_4',
+    'status', 'unit_cost', 'warranty_start_date', 'supplier_vendor', 'manufacturer', 'lpo_voucher_no', 'invoice_no'
   ]
 
   const resetState = useCallback(() => {

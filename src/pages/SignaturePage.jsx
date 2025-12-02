@@ -13,14 +13,28 @@ function SignaturePage() {
   const [locationBuilding, setLocationBuilding] = useState('')
   const [locationFloor, setLocationFloor] = useState('')
   const [locationSection, setLocationSection] = useState('')
+  const [deviceType, setDeviceType] = useState([]) // Array for multiple selections
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
+  const [hasSignature, setHasSignature] = useState(false) // Track signature state
+
+  // Location options
+  const [locationOptions, setLocationOptions] = useState({
+    building: [],
+    floor: [],
+    section: []
+  })
+  const [showAddLocationModal, setShowAddLocationModal] = useState(false)
+  const [addLocationCategory, setAddLocationCategory] = useState('')
+  const [newLocationValue, setNewLocationValue] = useState('')
+  const [isAddingLocation, setIsAddingLocation] = useState(false)
 
   // Fetch assignment data
   useEffect(() => {
     fetchAssignment()
+    fetchLocationOptions()
   }, [token])
 
   const fetchAssignment = async () => {
@@ -56,16 +70,108 @@ function SignaturePage() {
     }
   }
 
+  const fetchLocationOptions = async () => {
+    try {
+      const response = await fetch('/api/locations/options')
+      if (response.ok) {
+        const data = await response.json()
+        setLocationOptions(data)
+      }
+    } catch (err) {
+      console.error('Failed to load location options:', err)
+    }
+  }
+
   const clearSignature = () => {
-    sigCanvas.current.clear()
+    if (sigCanvas.current) {
+      sigCanvas.current.clear()
+      setHasSignature(false)
+    }
+  }
+
+  const handleSignatureEnd = () => {
+    // Called when user finishes drawing
+    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+      setHasSignature(true)
+    }
   }
 
   const isSignatureEmpty = () => {
+    // Return true if canvas ref is not yet attached or if signature is empty
+    if (!sigCanvas.current) return true
     return sigCanvas.current.isEmpty()
   }
 
   const isFormValid = () => {
-    return !isSignatureEmpty()
+    return hasSignature && !isSignatureEmpty()
+  }
+
+  const handleDeviceTypeToggle = (type) => {
+    if (deviceType.includes(type)) {
+      setDeviceType(deviceType.filter(t => t !== type))
+    } else {
+      setDeviceType([...deviceType, type])
+    }
+  }
+
+  const openAddLocationModal = (category) => {
+    setAddLocationCategory(category)
+    setNewLocationValue('')
+    setShowAddLocationModal(true)
+  }
+
+  const handleAddLocation = async () => {
+    if (!newLocationValue.trim()) {
+      setMessage({
+        type: 'danger',
+        text: 'Please enter a value'
+      })
+      return
+    }
+
+    setIsAddingLocation(true)
+    try {
+      const response = await fetch('/api/locations/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: addLocationCategory,
+          value: newLocationValue.trim()
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to add location option')
+      }
+
+      const data = await response.json()
+
+      // Refresh location options
+      await fetchLocationOptions()
+
+      // Auto-select the newly added option
+      if (addLocationCategory === 'building') {
+        setLocationBuilding(newLocationValue.trim())
+      } else if (addLocationCategory === 'floor') {
+        setLocationFloor(newLocationValue.trim())
+      } else if (addLocationCategory === 'section') {
+        setLocationSection(newLocationValue.trim())
+      }
+
+      setShowAddLocationModal(false)
+      setMessage({
+        type: 'success',
+        text: `Location option "${newLocationValue.trim()}" added successfully`
+      })
+    } catch (err) {
+      setMessage({
+        type: 'danger',
+        text: err.message
+      })
+    } finally {
+      setIsAddingLocation(false)
+    }
   }
 
   const handleSubmitSignature = async () => {
@@ -88,6 +194,7 @@ function SignaturePage() {
           location_building: locationBuilding || null,
           location_floor: locationFloor || null,
           location_section: locationSection || null,
+          device_type: deviceType.length > 0 ? deviceType.join(', ') : null,
           signature_data: signatureData
         })
       })
@@ -391,14 +498,36 @@ function SignaturePage() {
                 }}>
                   Building
                 </label>
-                <input
-                  id="building"
-                  type="text"
-                  className="input-premium"
-                  value={locationBuilding}
-                  onChange={(e) => setLocationBuilding(e.target.value)}
-                  placeholder="Enter building name/number"
-                />
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                  <select
+                    id="building"
+                    className="input-premium"
+                    value={locationBuilding}
+                    onChange={(e) => setLocationBuilding(e.target.value)}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Select Building</option>
+                    {locationOptions.building.map(opt => (
+                      <option key={opt.id} value={opt.value}>{opt.value}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => openAddLocationModal('building')}
+                    disabled={isSubmitting}
+                    style={{
+                      padding: '10px 15px',
+                      minWidth: 'auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Add new building"
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
               </div>
               <div>
                 <label htmlFor="floor" style={{
@@ -410,14 +539,36 @@ function SignaturePage() {
                 }}>
                   Floor
                 </label>
-                <input
-                  id="floor"
-                  type="text"
-                  className="input-premium"
-                  value={locationFloor}
-                  onChange={(e) => setLocationFloor(e.target.value)}
-                  placeholder="Enter floor number"
-                />
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                  <select
+                    id="floor"
+                    className="input-premium"
+                    value={locationFloor}
+                    onChange={(e) => setLocationFloor(e.target.value)}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Select Floor</option>
+                    {locationOptions.floor.map(opt => (
+                      <option key={opt.id} value={opt.value}>{opt.value}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => openAddLocationModal('floor')}
+                    disabled={isSubmitting}
+                    style={{
+                      padding: '10px 15px',
+                      minWidth: 'auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Add new floor"
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
               </div>
               <div>
                 <label htmlFor="section" style={{
@@ -427,17 +578,137 @@ function SignaturePage() {
                   fontWeight: '500',
                   color: 'var(--theme-text-primary)'
                 }}>
-                  Section/Room
+                  Section
                 </label>
-                <input
-                  id="section"
-                  type="text"
-                  className="input-premium"
-                  value={locationSection}
-                  onChange={(e) => setLocationSection(e.target.value)}
-                  placeholder="Enter section/room"
-                />
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                  <select
+                    id="section"
+                    className="input-premium"
+                    value={locationSection}
+                    onChange={(e) => setLocationSection(e.target.value)}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Select Section</option>
+                    {locationOptions.section.map(opt => (
+                      <option key={opt.id} value={opt.value}>{opt.value}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => openAddLocationModal('section')}
+                    disabled={isSubmitting}
+                    style={{
+                      padding: '10px 15px',
+                      minWidth: 'auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Add new section"
+                  >
+                    <i className="fas fa-plus"></i>
+                  </button>
+                </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Device Type */}
+        <div className="premium-card" style={{ marginBottom: '30px' }}>
+          <div className="card-header">
+            <h2 style={{ margin: 0, fontSize: '20px' }}>Device Type (Optional)</h2>
+          </div>
+          <div className="card-body">
+            <p style={{
+              marginBottom: '15px',
+              color: 'var(--theme-text-secondary)',
+              fontSize: '14px'
+            }}>
+              Select where these devices will be used. You can select multiple options.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+                cursor: 'pointer',
+                padding: '12px',
+                border: '2px solid var(--theme-border)',
+                borderRadius: '8px',
+                background: deviceType.includes('Office Device') ? 'var(--theme-bg-secondary)' : 'transparent',
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={deviceType.includes('Office Device')}
+                  onChange={() => handleDeviceTypeToggle('Office Device')}
+                  disabled={isSubmitting}
+                  style={{
+                    marginTop: '3px',
+                    width: '18px',
+                    height: '18px',
+                    cursor: 'pointer'
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontWeight: '600',
+                    color: 'var(--theme-text-primary)',
+                    marginBottom: '5px'
+                  }}>
+                    Office Device
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'var(--theme-text-secondary)',
+                    lineHeight: '1.5'
+                  }}>
+                    I understand that I will be responsible for any misuse or damages that may occur. I confirm that this device(s) will be used for work purpose only.
+                  </div>
+                </div>
+              </label>
+              <label style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+                cursor: 'pointer',
+                padding: '12px',
+                border: '2px solid var(--theme-border)',
+                borderRadius: '8px',
+                background: deviceType.includes('Lab Device') ? 'var(--theme-bg-secondary)' : 'transparent',
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={deviceType.includes('Lab Device')}
+                  onChange={() => handleDeviceTypeToggle('Lab Device')}
+                  disabled={isSubmitting}
+                  style={{
+                    marginTop: '3px',
+                    width: '18px',
+                    height: '18px',
+                    cursor: 'pointer'
+                  }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontWeight: '600',
+                    color: 'var(--theme-text-primary)',
+                    marginBottom: '5px'
+                  }}>
+                    Lab Device
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    color: 'var(--theme-text-secondary)',
+                    lineHeight: '1.5'
+                  }}>
+                    I understand that the lab supervisor shall monitor the lab devices to avoid any misuse or damage.
+                  </div>
+                </div>
+              </label>
             </div>
           </div>
         </div>
@@ -463,6 +734,7 @@ function SignaturePage() {
             }}>
               <SignatureCanvas
                 ref={sigCanvas}
+                onEnd={handleSignatureEnd}
                 canvasProps={{
                   width: 600,
                   height: 200,
@@ -576,6 +848,85 @@ function SignaturePage() {
                     style={{ flex: 1 }}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Dispute'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Location Modal */}
+        {showAddLocationModal && (
+          <div className="modal-overlay animate-fadeIn" onClick={() => !isAddingLocation && setShowAddLocationModal(false)}>
+            <div className="modal-content animate-scaleIn" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+              <div className="card-header">
+                <h2 style={{ margin: 0, fontSize: '20px' }}>
+                  Add New {addLocationCategory === 'building' ? 'Building' : addLocationCategory === 'floor' ? 'Floor' : 'Section'}
+                </h2>
+              </div>
+              <div className="card-body">
+                <p style={{
+                  marginBottom: '15px',
+                  color: 'var(--theme-text-secondary)',
+                  fontSize: '14px'
+                }}>
+                  Enter a new {addLocationCategory} option. It will be available for future use.
+                </p>
+                <label htmlFor="newLocationValue" style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--theme-text-primary)'
+                }}>
+                  {addLocationCategory === 'building' ? 'Building Name' : addLocationCategory === 'floor' ? 'Floor Name' : 'Section Name'} <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                </label>
+                <input
+                  id="newLocationValue"
+                  type="text"
+                  className="input-premium"
+                  value={newLocationValue}
+                  onChange={(e) => setNewLocationValue(e.target.value)}
+                  placeholder={`Enter ${addLocationCategory} name`}
+                  disabled={isAddingLocation}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && newLocationValue.trim()) {
+                      handleAddLocation()
+                    }
+                  }}
+                  autoFocus
+                />
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setShowAddLocationModal(false)}
+                    disabled={isAddingLocation}
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-premium"
+                    onClick={handleAddLocation}
+                    disabled={isAddingLocation || !newLocationValue.trim()}
+                    style={{ flex: 1 }}
+                  >
+                    {isAddingLocation ? (
+                      <>
+                        <span className="spinner-premium" style={{
+                          width: '14px',
+                          height: '14px',
+                          marginRight: '6px'
+                        }}></span>
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-plus"></i> Add
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

@@ -1,110 +1,132 @@
-import PDFDocument from 'pdfkit';
+import puppeteer from 'puppeteer';
+import Handlebars from 'handlebars';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-export async function generateHandoverPDF({ employee, assets }) {
-  return new Promise((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({ margin: 50, size: 'A4' });
-      const chunks = [];
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-      doc.on('data', chunk => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
+// Register Handlebars helpers
+Handlebars.registerHelper('add', function(a, b) {
+  return a + b;
+});
 
-      // Header
-      doc.fontSize(20).text('Ajman University', { align: 'center' });
-      doc.fontSize(16).text('Asset Handover Form', { align: 'center' });
-      doc.moveDown(2);
-
-      // Employee Information
-      doc.fontSize(12).text('Employee Information:', { underline: true });
-      doc.moveDown(0.5);
-      doc.fontSize(10);
-      doc.text(`Employee Name: ${employee.employee_name}`);
-      if (employee.employee_id) {
-        doc.text(`Work ID: ${employee.employee_id}`);
-      }
-      if (employee.office_college) {
-        doc.text(`Office/College: ${employee.office_college}`);
-      }
-      doc.moveDown(1.5);
-
-      // Declaration
-      doc.fontSize(12).text('Declaration:', { underline: true });
-      doc.moveDown(0.5);
-      doc.fontSize(10);
-      doc.text(
-        'I confirm this device(s) is property of Ajman University and will be returned to AU Store after use. ' +
-        'Devices cannot be moved to another user/location without written Store approval.',
-        { align: 'justify' }
-      );
-      doc.moveDown(2);
-
-      // Assets Table
-      doc.fontSize(12).text('Assigned Assets:', { underline: true });
-      doc.moveDown(0.5);
-
-      // Check if any asset has LPO number
-      const hasLPO = assets.some(asset => asset.lpo_voucher_no);
-
-      // Table header
-      const tableTop = doc.y;
-      const colWidths = hasLPO ? [100, 100, 150, 80, 90] : [120, 120, 180, 100];
-      const colPositions = [];
-      let currentX = 50;
-
-      for (const width of colWidths) {
-        colPositions.push(currentX);
-        currentX += width;
-      }
-
-      doc.fontSize(9).font('Helvetica-Bold');
-      doc.text('Asset Code', colPositions[0], tableTop, { width: colWidths[0] });
-      doc.text('Asset Type', colPositions[1], tableTop, { width: colWidths[1] });
-      doc.text('Description', colPositions[2], tableTop, { width: colWidths[2] });
-      doc.text('Model', colPositions[3], tableTop, { width: colWidths[3] });
-      if (hasLPO) {
-        doc.text('LPO Number', colPositions[4], tableTop, { width: colWidths[4] });
-      }
-
-      // Draw header line
-      doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-
-      // Table rows
-      doc.font('Helvetica');
-      let rowY = tableTop + 20;
-
-      for (const asset of assets) {
-        // Check if we need a new page
-        if (rowY > 700) {
-          doc.addPage();
-          rowY = 50;
-        }
-
-        doc.text(asset.asset_code || '', colPositions[0], rowY, { width: colWidths[0] });
-        doc.text(asset.asset_type || '', colPositions[1], rowY, { width: colWidths[1] });
-        doc.text(asset.description || '', colPositions[2], rowY, { width: colWidths[2] });
-        doc.text(asset.model || '', colPositions[3], rowY, { width: colWidths[3] });
-        if (hasLPO) {
-          doc.text(asset.lpo_voucher_no || '', colPositions[4], rowY, { width: colWidths[4] });
-        }
-
-        rowY += 25;
-      }
-
-      // Signature section
-      doc.moveDown(4);
-      if (doc.y > 650) {
-        doc.addPage();
-      }
-
-      doc.fontSize(10);
-      doc.text('Employee Signature: _________________________', 50);
-      doc.moveDown(0.5);
-      doc.text(`Date: _________________________`, 50);
-
-      doc.end();
-    } catch (error) {
-      reject(error);
-    }
+Handlebars.registerHelper('formatDate', function(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
   });
+});
+
+// Load and compile template once
+const templatePath = join(__dirname, '../templates/handover-template.html');
+const templateSource = readFileSync(templatePath, 'utf-8');
+const template = Handlebars.compile(templateSource);
+
+/**
+ * Generate handover PDF using Puppeteer and HTML template
+ * @param {Object} params - PDF generation parameters
+ * @param {Object} params.employee - Employee information
+ * @param {Array} params.assets - Array of assigned assets
+ * @param {Object} params.signature - Signature data (optional for initial PDF)
+ * @returns {Promise<Buffer>} PDF buffer
+ */
+export async function generateHandoverPDF({ employee, assets, signature = null }) {
+  try {
+    // Prepare date
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Prepare logo (convert to base64 if exists)
+    let logoBase64 = null;
+    try {
+      const logoPath = join(__dirname, '../../assets/logo.png');
+      const logoBuffer = readFileSync(logoPath);
+      logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
+    } catch (err) {
+      console.warn('Logo not found, continuing without logo');
+    }
+
+    // Prepare location text (compact format)
+    let hasLocation = false;
+    let locationText = '';
+    if (signature?.location_building || signature?.location_floor || signature?.location_section) {
+      hasLocation = true;
+      const locationParts = [];
+      if (signature?.location_building) locationParts.push(`Building: ${signature.location_building}`);
+      if (signature?.location_floor) locationParts.push(`Floor: ${signature.location_floor}`);
+      if (signature?.location_section) locationParts.push(`Section: ${signature.location_section}`);
+      locationText = locationParts.join(' | ');
+    }
+
+    // Prepare device type flags
+    const isOfficeDevice = signature?.device_type?.includes('Office Device');
+    const isLabDevice = signature?.device_type?.includes('Lab Device');
+
+    // Prepare signature
+    let signatureData = null;
+    if (signature && signature.signature_data) {
+      signatureData = {
+        signature_data: signature.signature_data,
+        formatted_date: signature.signature_date ? new Date(signature.signature_date).toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }) : null
+      };
+    }
+
+    // Render template with data
+    const html = template({
+      logo: logoBase64,
+      date: currentDate,
+      assets: assets,
+      employee: {
+        employee_name: employee.employee_name || '',
+        employee_id: employee.employee_id || 'N/A',
+        office_college: employee.office_college || 'N/A'
+      },
+      hasLocation: hasLocation,
+      locationText: locationText,
+      isOfficeDevice: isOfficeDevice,
+      isLabDevice: isLabDevice,
+      signature: signatureData
+    });
+
+    // Launch Puppeteer and generate PDF
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '15mm',
+        right: '15mm',
+        bottom: '15mm',
+        left: '15mm'
+      }
+    });
+
+    await browser.close();
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
+    throw error;
+  }
 }

@@ -10,6 +10,7 @@ function AssetsPage() {
   const [showForm, setShowForm] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const [message, setMessage] = useState(null)
+  const [searchFilter, setSearchFilter] = useState('')
 
   useEffect(() => {
     fetchAssets()
@@ -109,6 +110,52 @@ function AssetsPage() {
     }
   }
 
+  const getFilteredAssets = () => {
+    if (!searchFilter.trim()) {
+      return assets
+    }
+
+    const searchLower = searchFilter.toLowerCase().trim()
+    return assets.filter(asset => {
+      // Format date for searching
+      let dateString = ''
+      if (asset.created_at) {
+        const date = new Date(asset.created_at)
+        dateString = date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }).toLowerCase()
+      }
+
+      return (
+        asset.asset_code?.toLowerCase().includes(searchLower) ||
+        asset.asset_type?.toLowerCase().includes(searchLower) ||
+        asset.description?.toLowerCase().includes(searchLower) ||
+        asset.model?.toLowerCase().includes(searchLower) ||
+        asset.manufacturer?.toLowerCase().includes(searchLower) ||
+        asset.serial_number?.toLowerCase().includes(searchLower) ||
+        asset.asset_location_1?.toLowerCase().includes(searchLower) ||
+        asset.asset_location_2?.toLowerCase().includes(searchLower) ||
+        asset.asset_location_3?.toLowerCase().includes(searchLower) ||
+        asset.asset_location_4?.toLowerCase().includes(searchLower) ||
+        asset.asset_category_1?.toLowerCase().includes(searchLower) ||
+        asset.asset_category_2?.toLowerCase().includes(searchLower) ||
+        asset.asset_category_3?.toLowerCase().includes(searchLower) ||
+        asset.asset_category_4?.toLowerCase().includes(searchLower) ||
+        asset.status?.toLowerCase().includes(searchLower) ||
+        asset.supplier_vendor?.toLowerCase().includes(searchLower) ||
+        asset.invoice_no?.toLowerCase().includes(searchLower) ||
+        asset.lpo_voucher_no?.toLowerCase().includes(searchLower) ||
+        dateString.includes(searchLower)
+      )
+    })
+  }
+
+  const clearFilter = () => {
+    setSearchFilter('')
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-fadeIn">
       {message && (
@@ -158,6 +205,37 @@ function AssetsPage() {
             </div>
           </div>
 
+          {/* Search/Filter Section */}
+          {!loading && assets.length > 0 && (
+            <div className="premium-card p-4 mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by asset code, type, description, model, manufacturer, serial, location, category, or date..."
+                  className="input-premium pl-10 pr-20"
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                />
+                <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-text-light"></i>
+                {searchFilter && (
+                  <button
+                    type="button"
+                    onClick={clearFilter}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-light hover:text-text-primary transition-colors"
+                    title="Clear filter"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                )}
+              </div>
+              {searchFilter && (
+                <p className="text-sm text-text-secondary mt-2">
+                  Showing {getFilteredAssets().length} of {assets.length} assets
+                </p>
+              )}
+            </div>
+          )}
+
           {loading ? (
             <div className="premium-card p-12">
               <div className="flex flex-col items-center justify-center">
@@ -167,7 +245,7 @@ function AssetsPage() {
             </div>
           ) : (
             <AssetList
-              assets={assets}
+              assets={getFilteredAssets()}
               onEdit={handleEditAsset}
               onDelete={handleDeleteAsset}
             />

@@ -4,6 +4,7 @@ import { initDatabase } from './database.js';
 import assetsRouter from './routes/assets.js';
 import employeesRouter from './routes/employees.js';
 import handoverRouter from './routes/handover.js';
+import locationsRouter from './routes/locations.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,6 +19,7 @@ initDatabase();
 app.use('/api/assets', assetsRouter);
 app.use('/api/employees', employeesRouter);
 app.use('/api/handover', handoverRouter);
+app.use('/api/locations', locationsRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
