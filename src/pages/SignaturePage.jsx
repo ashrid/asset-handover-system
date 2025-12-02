@@ -13,7 +13,6 @@ function SignaturePage() {
   const [locationBuilding, setLocationBuilding] = useState('')
   const [locationFloor, setLocationFloor] = useState('')
   const [locationSection, setLocationSection] = useState('')
-  const [deviceType, setDeviceType] = useState('')
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -66,20 +65,14 @@ function SignaturePage() {
   }
 
   const isFormValid = () => {
-    return (
-      locationBuilding.trim() !== '' &&
-      locationFloor.trim() !== '' &&
-      locationSection.trim() !== '' &&
-      deviceType.trim() !== '' &&
-      !isSignatureEmpty()
-    )
+    return !isSignatureEmpty()
   }
 
   const handleSubmitSignature = async () => {
     if (!isFormValid()) {
       setMessage({
         type: 'danger',
-        text: 'Please fill in all required fields and provide your signature'
+        text: 'Please provide your signature'
       })
       return
     }
@@ -92,10 +85,9 @@ function SignaturePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          location_building: locationBuilding,
-          location_floor: locationFloor,
-          location_section: locationSection,
-          device_type: deviceType,
+          location_building: locationBuilding || null,
+          location_floor: locationFloor || null,
+          location_section: locationSection || null,
           signature_data: signatureData
         })
       })
@@ -381,7 +373,7 @@ function SignaturePage() {
         {/* Location Information */}
         <div className="premium-card" style={{ marginBottom: '30px' }}>
           <div className="card-header">
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Location & Device Information</h2>
+            <h2 style={{ margin: 0, fontSize: '20px' }}>Location Information (Optional)</h2>
           </div>
           <div className="card-body">
             <div style={{
@@ -397,7 +389,7 @@ function SignaturePage() {
                   fontWeight: '500',
                   color: 'var(--theme-text-primary)'
                 }}>
-                  Building <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                  Building
                 </label>
                 <input
                   id="building"
@@ -406,7 +398,6 @@ function SignaturePage() {
                   value={locationBuilding}
                   onChange={(e) => setLocationBuilding(e.target.value)}
                   placeholder="Enter building name/number"
-                  required
                 />
               </div>
               <div>
@@ -417,7 +408,7 @@ function SignaturePage() {
                   fontWeight: '500',
                   color: 'var(--theme-text-primary)'
                 }}>
-                  Floor <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                  Floor
                 </label>
                 <input
                   id="floor"
@@ -426,7 +417,6 @@ function SignaturePage() {
                   value={locationFloor}
                   onChange={(e) => setLocationFloor(e.target.value)}
                   placeholder="Enter floor number"
-                  required
                 />
               </div>
               <div>
@@ -437,7 +427,7 @@ function SignaturePage() {
                   fontWeight: '500',
                   color: 'var(--theme-text-primary)'
                 }}>
-                  Section <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                  Section/Room
                 </label>
                 <input
                   id="section"
@@ -446,27 +436,6 @@ function SignaturePage() {
                   value={locationSection}
                   onChange={(e) => setLocationSection(e.target.value)}
                   placeholder="Enter section/room"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="deviceType" style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-primary)'
-                }}>
-                  Device Type <span style={{ color: 'var(--theme-danger)' }}>*</span>
-                </label>
-                <input
-                  id="deviceType"
-                  type="text"
-                  className="input-premium"
-                  value={deviceType}
-                  onChange={(e) => setDeviceType(e.target.value)}
-                  placeholder="e.g., Laptop, Desktop, Printer"
-                  required
                 />
               </div>
             </div>

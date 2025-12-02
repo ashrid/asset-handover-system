@@ -215,11 +215,11 @@ router.get('/sign/:token', (req, res) => {
 router.post('/submit-signature/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    const { location_building, location_floor, location_section, device_type, signature_data } = req.body;
+    const { location_building, location_floor, location_section, signature_data } = req.body;
 
-    // Validate required fields
-    if (!location_building || !location_floor || !location_section || !device_type || !signature_data) {
-      return res.status(400).json({ error: 'All fields are required' });
+    // Validate required fields (only signature is required, location is optional)
+    if (!signature_data) {
+      return res.status(400).json({ error: 'Signature is required' });
     }
 
     // Get assignment by token
@@ -250,7 +250,6 @@ router.post('/submit-signature/:token', async (req, res) => {
         location_building = ?,
         location_floor = ?,
         location_section = ?,
-        device_type = ?,
         signature_data = ?,
         signature_date = ?,
         is_signed = 1
@@ -258,10 +257,9 @@ router.post('/submit-signature/:token', async (req, res) => {
     `);
 
     updateStmt.run(
-      location_building,
-      location_floor,
-      location_section,
-      device_type,
+      location_building || null,
+      location_floor || null,
+      location_section || null,
       signature_data,
       now.toISOString(),
       token
@@ -276,16 +274,12 @@ router.post('/submit-signature/:token', async (req, res) => {
 
     // Generate signed PDF
     const pdfBuffer = await generateHandoverPDF({
-      employee_name: assignment.employee_name,
-      employee_id: assignment.employee_id_number,
-      email: assignment.email,
-      office_college: assignment.office_college,
-      location_building,
-      location_floor,
-      location_section,
-      device_type,
-      signature_data,
-      signature_date: now,
+      employee: {
+        employee_name: assignment.employee_name,
+        employee_id: assignment.employee_id_number,
+        email: assignment.email,
+        office_college: assignment.office_college
+      },
       assets
     });
 
