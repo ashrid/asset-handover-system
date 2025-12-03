@@ -402,6 +402,13 @@ router.post('/resend/:id', async (req, res) => {
       });
     }
 
+    // Check if disputed
+    if (assignment.is_disputed) {
+      return res.status(400).json({
+        error: 'This assignment is disputed. Please resolve the dispute before resending.'
+      });
+    }
+
     // Check if token is expired
     const now = new Date();
     const expiresAt = new Date(assignment.token_expires_at);

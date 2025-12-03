@@ -315,7 +315,7 @@ function AssignmentsPage() {
                           <i className="fas fa-eye"></i>
                           <span>View</span>
                         </button>
-                        {assignment.pdf_sent && !assignment.is_signed && (
+                        {assignment.pdf_sent && !assignment.is_signed && !assignment.is_disputed && (
                           <button
                             className="btn-secondary inline-flex items-center gap-2 text-sm py-2 px-4"
                             onClick={() => handleResendEmail(assignment.id, assignment.employee_name)}
@@ -523,7 +523,7 @@ function AssignmentsPage() {
             {/* Modal Footer */}
             <div className="flex justify-between items-center gap-3 p-6 border-t border">
               <div style={{ display: 'flex', gap: '10px' }}>
-                {selectedAssignment.pdf_sent && !selectedAssignment.is_signed && (
+                {selectedAssignment.pdf_sent && !selectedAssignment.is_signed && !selectedAssignment.is_disputed && (
                   <button
                     className="btn-secondary inline-flex items-center gap-2"
                     onClick={() => {

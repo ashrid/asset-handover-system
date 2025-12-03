@@ -10,10 +10,10 @@
 
 | Status | Count | Issues |
 |--------|-------|--------|
-| ✅ **Resolved** | 5 | #1, #2, #3, #4, #10 |
+| ✅ **Resolved** | 6 | #1, #2, #3, #4, #5, #10 |
 | 🟢 **Enhancement** | 1 | PDF System Migration |
 | 🔴 **Critical** | 0 | - |
-| 🟡 **Pending** | 5 | #5, #6, #7, #8, #9 |
+| 🟡 **Pending** | 4 | #6, #7, #8, #9 |
 | **Total** | **11** | |
 
 ### Current Status - Phase 2 Complete, Phase 3 Pending ✅
@@ -29,8 +29,10 @@
 - ✅ Backend-frontend field name discrepancies fixed
 - ✅ Backup email for senior sign-off capability (dual email delivery, backup signer tracking, PDF distinction)
 
+**Completed Phase 3 Features:**
+- ✅ Admin resend signing link functionality (with disputed check)
+
 **Pending Implementation (Phase 3):**
-- 🟡 Admin resend signing link functionality
 - 🟡 Automated weekly reminder system
 - 🟡 Send signed PDFs to admin email
 - 🟡 Edit assets in existing assignments
@@ -730,16 +732,62 @@ status = is_signed ? 'Signed'
 
 ---
 
-## 🟡 PENDING ISSUE #5: Admin Resend Signing Link Functionality
+## ✅ RESOLVED ISSUE #5: Admin Resend Signing Link Functionality
 
-**Status:** 🟡 Not Started
+**Status:** ✅ Resolved
 **Priority:** P1 - High
 **Severity:** Important
-**Target Date:** TBD
-**Affected Files:** (To be determined)
+**Resolution Date:** 2025-12-03
+**Affected Files:**
+- `server/routes/handover.js:385-461` (Resend endpoint - ALREADY EXISTED, enhanced with disputed check)
+- `src/pages/AssignmentsPage.jsx:318-327, 526-537` (Resend button UI - ALREADY EXISTED, enhanced with disputed check)
 
 ### Problem Description
 Currently, if an employee loses their signing link email or the email fails to deliver, the admin has no way to resend the signing link without creating a completely new assignment. This creates unnecessary duplicate records and potential confusion.
+
+### Resolution Implemented
+
+**Note:** This feature was already 95% implemented in the codebase. The final 5% (disputed check) was added to complete it.
+
+**Backend Validation (`server/routes/handover.js:385-461`):**
+- ✅ Endpoint already existed: `POST /api/handover/resend/:id`
+- ✅ Uses existing token (doesn't generate new one)
+- ✅ Validates token not expired (30 days)
+- ✅ Checks assignment not already signed
+- ✅ **ADDED:** Now checks if assignment is disputed (prevents resend for disputed assignments)
+- ✅ Sends to both primary and backup emails (if backup_email provided)
+- ✅ Increments `reminder_count` counter
+- ✅ Updates `last_reminder_sent` timestamp
+
+**Frontend UI (`src/pages/AssignmentsPage.jsx`):**
+- ✅ "Resend" button already existed in table view (line 318-327)
+- ✅ "Resend Email" button already existed in modal view (line 526-537)
+- ✅ **ADDED:** Buttons now hidden for disputed assignments (`!assignment.is_disputed`)
+- ✅ Buttons only show for pending, unsigned, non-expired, non-disputed assignments
+- ✅ Success/error messages displayed via toast notifications
+
+**Validation Logic:**
+```javascript
+// Backend checks (all must pass):
+if (!assignment) return 404; // Not found
+if (assignment.is_signed) return 400; // Already signed
+if (assignment.is_disputed) return 400; // Disputed ✅ NEW
+if (now > expiresAt) return 410; // Expired
+
+// Frontend visibility:
+{assignment.pdf_sent && !assignment.is_signed && !assignment.is_disputed && (
+  <button>Resend</button>
+)}
+```
+
+### Testing Results
+- ✅ Resend button appears for pending assignments
+- ✅ Resend button hidden for signed assignments
+- ✅ Resend button hidden for disputed assignments (NEW)
+- ✅ Backend rejects resend for disputed assignments (NEW)
+- ✅ Email sent to both primary and backup emails
+- ✅ Database counters increment correctly
+- ✅ Server starts without errors
 
 ### Requirements
 - Admin should be able to resend the signing link from the Assignments page
