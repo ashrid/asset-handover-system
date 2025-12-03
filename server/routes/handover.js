@@ -314,12 +314,26 @@ router.post('/submit-signature/:token', async (req, res) => {
       }
     });
 
-    // Send signed PDF to both employee and admin
+    // Send signed PDF to employee
     await sendHandoverEmail({
       email: assignment.email,
       employeeName: assignment.employee_name,
       pdfBuffer
     });
+
+    // Send signed PDF to admin if ADMIN_EMAIL is configured
+    if (process.env.ADMIN_EMAIL) {
+      await sendHandoverEmail({
+        email: process.env.ADMIN_EMAIL,
+        employeeName: assignment.employee_name,
+        employeeId: assignment.employee_id_number,
+        officeCollege: assignment.office_college,
+        assetCount: assets.length,
+        signatureDate: now,
+        pdfBuffer,
+        isAdminCopy: true
+      });
+    }
 
     // Update pdf_sent status after successful email send
     const updatePdfStatus = db.prepare(`
@@ -512,6 +526,28 @@ router.post('/dispute/:token', async (req, res) => {
     `);
 
     updateStmt.run(dispute_reason, token);
+
+    // Send dispute notification to admin if ADMIN_EMAIL is configured
+    if (process.env.ADMIN_EMAIL) {
+      // Get assigned assets for email
+      const assets = db.prepare(`
+        SELECT a.* FROM assets a
+        JOIN assignment_items ai ON a.id = ai.asset_id
+        WHERE ai.assignment_id = ?
+      `).all(assignment.id);
+
+      await sendHandoverEmail({
+        email: process.env.ADMIN_EMAIL,
+        employeeName: assignment.employee_name,
+        employeeId: assignment.employee_id_number,
+        employeeEmail: assignment.email,
+        officeCollege: assignment.office_college,
+        assignmentId: assignment.id,
+        assets: assets,
+        disputeReason: dispute_reason,
+        isDispute: true
+      });
+    }
 
     res.json({
       message: 'Dispute submitted successfully'

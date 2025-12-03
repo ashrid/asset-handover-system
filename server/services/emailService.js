@@ -38,7 +38,7 @@ async function getTransporter() {
   return transporter;
 }
 
-export async function sendHandoverEmail({ email, employeeName, employeeId, primaryEmail, signingUrl, expiresAt, assetCount, pdfBuffer, isPrimary = true }) {
+export async function sendHandoverEmail({ email, employeeName, employeeId, primaryEmail, employeeEmail, officeCollege, signingUrl, expiresAt, assetCount, signatureDate, assignmentId, assets, disputeReason, pdfBuffer, isPrimary = true, isAdminCopy = false, isDispute = false }) {
   try {
     const transporter = await getTransporter();
 
@@ -58,8 +58,102 @@ export async function sendHandoverEmail({ email, employeeName, employeeId, prima
     // Determine email content based on recipient type (primary or backup)
     let subject, textContent, htmlContent;
 
-    if (isSignedPDF) {
-      // Signed PDF email (same for both primary and backup)
+    if (isDispute) {
+      // Dispute notification email to admin
+      const assetList = assets.map((asset, index) =>
+        `${index + 1}. ${asset.asset_code} - ${asset.asset_type}${asset.description ? ` (${asset.description})` : ''}`
+      ).join('\n');
+
+      subject = `⚠️ Asset Assignment Disputed - ${employeeName}`;
+      textContent = `Asset Assignment Disputed\n\n` +
+        `An employee has disputed their asset assignment.\n\n` +
+        `Employee Details:\n` +
+        `- Name: ${employeeName}\n` +
+        `${employeeId ? `- Employee ID: ${employeeId}\n` : ''}` +
+        `- Email: ${employeeEmail}\n` +
+        `${officeCollege ? `- Office/College: ${officeCollege}\n` : ''}` +
+        `- Assignment ID: ${assignmentId}\n\n` +
+        `Disputed Assets (${assets.length} items):\n${assetList}\n\n` +
+        `Dispute Reason:\n"${disputeReason}"\n\n` +
+        `Please review this dispute and take appropriate action.\n\n` +
+        `Best regards,\nAjman University Asset Management System`;
+
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: #dc2626; padding: 30px; border-radius: 10px 10px 0 0;">
+            <h2 style="color: white; margin: 0; font-size: 24px;">⚠️ Asset Assignment Disputed</h2>
+          </div>
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; color: #333; font-weight: bold;">An employee has disputed their asset assignment.</p>
+
+            <div style="margin: 20px 0; padding: 20px; background: white; border-left: 4px solid #dc2626; border-radius: 5px;">
+              <h3 style="margin-top: 0; color: #dc2626;">Employee Details:</h3>
+              <p style="margin: 5px 0; color: #333;"><strong>Name:</strong> ${employeeName}</p>
+              ${employeeId ? `<p style="margin: 5px 0; color: #333;"><strong>Employee ID:</strong> ${employeeId}</p>` : ''}
+              <p style="margin: 5px 0; color: #333;"><strong>Email:</strong> ${employeeEmail}</p>
+              ${officeCollege ? `<p style="margin: 5px 0; color: #333;"><strong>Office/College:</strong> ${officeCollege}</p>` : ''}
+              <p style="margin: 5px 0; color: #333;"><strong>Assignment ID:</strong> ${assignmentId}</p>
+            </div>
+
+            <div style="margin: 20px 0; padding: 20px; background: white; border-left: 4px solid #0969da; border-radius: 5px;">
+              <h3 style="margin-top: 0; color: #0969da;">Disputed Assets (${assets.length} items):</h3>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+                ${assets.map(asset => `
+                  <li style="margin: 5px 0; color: #333;">
+                    <strong>${asset.asset_code}</strong> - ${asset.asset_type}
+                    ${asset.description ? `<br><span style="color: #666; font-size: 14px;">${asset.description}</span>` : ''}
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+
+            <div style="margin: 20px 0; padding: 20px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 5px;">
+              <h3 style="margin-top: 0; color: #856404;">Dispute Reason:</h3>
+              <p style="margin: 0; color: #333; font-style: italic;">"${disputeReason}"</p>
+            </div>
+
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">Please review this dispute and take appropriate action through the admin panel.</p>
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
+            <strong style="color: #333;">Ajman University Asset Management System</strong></p>
+          </div>
+        </div>
+      `;
+    } else if (isSignedPDF && isAdminCopy) {
+      // Admin copy of signed PDF
+      const formattedDate = signatureDate ? (() => {
+        const date = new Date(signatureDate);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = date.toLocaleDateString('en-US', { month: 'short' });
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${day}-${month}-${year} ${hours}:${minutes}`;
+      })() : '';
+
+      subject = `Asset Handover Signed - ${employeeName} - Ajman University`;
+      textContent = `Asset Handover Completed\n\nEmployee: ${employeeName}${employeeId ? `\nEmployee ID: ${employeeId}` : ''}${officeCollege ? `\nOffice/College: ${officeCollege}` : ''}\nAssets: ${assetCount} item${assetCount !== 1 ? 's' : ''}\nSigned: ${formattedDate}\n\nPlease find the signed PDF attached for your records.\n\nBest regards,\nAjman University Asset Management System`;
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: #28a745; padding: 30px; border-radius: 10px 10px 0 0;">
+            <h2 style="color: white; margin: 0; font-size: 24px;">✓ Asset Handover Signed</h2>
+          </div>
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; color: #333; font-weight: bold;">Asset handover form has been signed.</p>
+            <div style="margin: 20px 0; padding: 20px; background: white; border-left: 4px solid #28a745; border-radius: 5px;">
+              <p style="margin: 5px 0; color: #333;"><strong>Employee:</strong> ${employeeName}</p>
+              ${employeeId ? `<p style="margin: 5px 0; color: #333;"><strong>Employee ID:</strong> ${employeeId}</p>` : ''}
+              ${officeCollege ? `<p style="margin: 5px 0; color: #333;"><strong>Office/College:</strong> ${officeCollege}</p>` : ''}
+              <p style="margin: 5px 0; color: #333;"><strong>Assets:</strong> ${assetCount} item${assetCount !== 1 ? 's' : ''}</p>
+              <p style="margin: 5px 0; color: #333;"><strong>Signed:</strong> ${formattedDate}</p>
+            </div>
+            <p style="font-size: 14px; color: #666;">The signed PDF is attached to this email for your records.</p>
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
+            <strong style="color: #333;">Ajman University Asset Management System</strong></p>
+          </div>
+        </div>
+      `;
+    } else if (isSignedPDF) {
+      // Signed PDF email (for employee)
       subject = 'Asset Handover - Signed Confirmation - Ajman University';
       textContent = `Dear ${employeeName},\n\nThank you for signing the Asset Handover Form.\n\nPlease find attached your signed copy for your records.\n\nBest regards,\nAjman University Main Store`;
       htmlContent = `
