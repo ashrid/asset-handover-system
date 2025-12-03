@@ -421,14 +421,29 @@ router.post('/resend/:id', async (req, res) => {
     // Generate signing URL
     const signingUrl = `http://localhost:3000/sign/${assignment.signature_token}`;
 
-    // Resend email with signing link
+    // Resend email with signing link to primary email
     await sendHandoverEmail({
       email: assignment.email,
       employeeName: assignment.employee_name,
       signingUrl: signingUrl,
       expiresAt: expiresAt,
-      assetCount: assets.length
+      assetCount: assets.length,
+      isPrimary: true
     });
+
+    // Resend to backup email if provided
+    if (assignment.backup_email) {
+      await sendHandoverEmail({
+        email: assignment.backup_email,
+        employeeName: assignment.employee_name,
+        employeeId: assignment.employee_id_number,
+        primaryEmail: assignment.email,
+        signingUrl: signingUrl,
+        expiresAt: expiresAt,
+        assetCount: assets.length,
+        isPrimary: false
+      });
+    }
 
     // Update reminder count
     const updateReminder = db.prepare(`
