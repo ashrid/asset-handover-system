@@ -19,6 +19,7 @@ function SignaturePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
   const [hasSignature, setHasSignature] = useState(false) // Track signature state
+  const [signingEmail, setSigningEmail] = useState('') // Track which email is signing
 
   // Location options
   const [locationOptions, setLocationOptions] = useState({
@@ -31,11 +32,21 @@ function SignaturePage() {
   const [newLocationValue, setNewLocationValue] = useState('')
   const [isAddingLocation, setIsAddingLocation] = useState(false)
 
-  // Fetch assignment data
+  // Fetch assignment data and determine signing email
   useEffect(() => {
     fetchAssignment()
     fetchLocationOptions()
   }, [token])
+
+  // Set signing email when assignment loads
+  useEffect(() => {
+    if (assignment) {
+      // Check URL for email hint (for backup signer)
+      const urlParams = new URLSearchParams(window.location.search)
+      const emailHint = urlParams.get('email')
+      setSigningEmail(emailHint || assignment.email)
+    }
+  }, [assignment])
 
   const fetchAssignment = async () => {
     try {
@@ -195,7 +206,8 @@ function SignaturePage() {
           location_floor: locationFloor || null,
           location_section: locationSection || null,
           device_type: deviceType.length > 0 ? deviceType.join(', ') : null,
-          signature_data: signatureData
+          signature_data: signatureData,
+          signing_email: signingEmail  // Track which email is signing
         })
       })
 

@@ -10,10 +10,10 @@
 
 | Status | Count | Issues |
 |--------|-------|--------|
-| ✅ **Resolved** | 4 | #1, #2, #3, #4 |
+| ✅ **Resolved** | 5 | #1, #2, #3, #4, #10 |
 | 🟢 **Enhancement** | 1 | PDF System Migration |
 | 🔴 **Critical** | 0 | - |
-| 🟡 **Pending** | 6 | #5, #6, #7, #8, #9, #10 |
+| 🟡 **Pending** | 5 | #5, #6, #7, #8, #9 |
 | **Total** | **11** | |
 
 ### Current Status - Phase 2 Complete, Phase 3 Pending ✅
@@ -27,6 +27,7 @@
 - ✅ Search/filter functionality added to all pages
 - ✅ Date format standardized to dd-mmm-yyyy
 - ✅ Backend-frontend field name discrepancies fixed
+- ✅ Backup email for senior sign-off capability (dual email delivery, backup signer tracking, PDF distinction)
 
 **Pending Implementation (Phase 3):**
 - 🟡 Admin resend signing link functionality
@@ -34,7 +35,6 @@
 - 🟡 Send signed PDFs to admin email
 - 🟡 Edit assets in existing assignments
 - 🟡 Dispute notification to admin
-- 🟡 Backup email for senior sign-off capability
 
 ### Major Enhancement: PDF System Migration
 
@@ -1061,17 +1061,21 @@ View Assignment: [Link to admin panel]
 
 ---
 
-## 🟡 PENDING ISSUE #10: Backup Email for Senior Sign-off
+## ✅ RESOLVED ISSUE #10: Backup Email for Senior Sign-off
 
-**Status:** 🟡 Not Started
+**Status:** ✅ Resolved
 **Priority:** P1 - High
 **Severity:** Important
-**Target Date:** TBD
+**Resolution Date:** 2025-12-03
 **Affected Files:**
-- `src/pages/HandoverPage.jsx` (Add backup email field)
-- `server/routes/handover.js` (Handle backup email)
-- `server/services/emailService.js` (Send to both emails)
-- Database migration (Add backup_email column)
+- `server/migrations/004_add_backup_email.js` (CREATED)
+- `src/pages/HandoverPage.jsx:10-16, 256-279` (ADDED backup email field)
+- `server/routes/handover.js:12, 31-43, 60-107, 236, 277-314` (UPDATED)
+- `server/services/emailService.js:41, 82-141` (ADDED backup signer templates)
+- `src/pages/SignaturePage.jsx:16, 29-37, 156` (TRACK signing email)
+- `src/pages/AssignmentsPage.jsx:312-326` (SHOW who signed)
+- `server/services/pdfGenerator.js:86-91` (PASS signer info to PDF)
+- `server/templates/handover-template.html:226-237, 338-343` (SHOW in PDF)
 
 ### Problem Description
 When an employee is out of office (vacation, sick leave, travel, etc.), they cannot sign their asset handover acknowledgement. Currently, there's no mechanism for a senior/manager to sign on behalf of the employee who is away from the office.
@@ -1095,7 +1099,53 @@ When an employee is out of office (vacation, sick leave, travel, etc.), they can
 3. **Employee business travel**: Department head signs while employee away
 4. **New hire not yet onboarded**: HR manager signs temporarily
 
-### Proposed Implementation
+### Resolution Implemented
+
+**1. Database Migration (`server/migrations/004_add_backup_email.js`)**
+- Added `backup_email TEXT` column to store optional backup signer email
+- Added `signed_by_email TEXT` column to track which email actually signed
+- Migration executed successfully
+
+**2. Backend Updates (`server/routes/handover.js`)**
+- Updated handover creation endpoint to accept `backup_email` parameter
+- Implemented dual email delivery system:
+  - Sends signing link to primary employee email with standard template
+  - If backup email provided, sends to backup email with modified template
+  - Both emails use the same signing token (either can sign)
+- Updated signature submission to accept and store `signing_email` parameter
+- Enhanced PDF generation to pass `signed_by_email` and `is_backup_signer` flag
+
+**3. Email Service (`server/services/emailService.js`)**
+- Enhanced `sendHandoverEmail()` with `isPrimary` flag
+- Created distinct email templates for primary vs backup signers:
+  - **Primary**: Standard "Asset Handover - Signature Required"
+  - **Backup**: "Asset Handover - Signature Required (Backup Signer)" with context about employee being unavailable
+- Backup email includes employee details (name, ID, primary email, asset count)
+
+**4. Frontend Updates**
+- **HandoverPage.jsx**: Added optional backup email field with helper text and icon
+- **SignaturePage.jsx**: Detects signing email from URL parameter, sends `signing_email` with submission
+- **AssignmentsPage.jsx**: Shows "Signed By" field with "Backup Signer" badge when applicable
+
+**5. PDF Distinction (`server/services/pdfGenerator.js` & `server/templates/handover-template.html`)**
+- PDF now receives and displays backup signer information
+- When backup signer signs, PDF shows highlighted box below signature:
+  - **Signed by:** [backup email]
+  - **(Authorized on behalf of [Employee Name])**
+- Yellow/amber background with left border for visual distinction
+- Only appears when `is_backup_signer` is true
+
+### Testing Results
+- ✅ Backup email field optional and properly saved
+- ✅ Dual emails sent successfully (both primary and backup receive links)
+- ✅ Backup email template clearly distinguishes backup signer role
+- ✅ Either email can successfully sign using same token
+- ✅ Database correctly tracks `signed_by_email` column
+- ✅ Admin UI shows "Backup Signer" badge when applicable
+- ✅ PDF displays backup signer information with visual distinction
+- ✅ Form spacing consistent across all fields
+
+### Original Proposed Implementation
 
 #### Database Migration
 ```sql

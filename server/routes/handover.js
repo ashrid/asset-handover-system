@@ -9,7 +9,7 @@ const router = express.Router();
 // Create asset assignment and send handover email
 router.post('/', async (req, res) => {
   try {
-    const { employee_name, employee_id, email, office_college, asset_ids } = req.body;
+    const { employee_name, employee_id, email, office_college, backup_email, asset_ids } = req.body;
 
     if (!employee_name || !email || !asset_ids || asset_ids.length === 0) {
       return res.status(400).json({
@@ -35,11 +35,12 @@ router.post('/', async (req, res) => {
         employee_id_number,
         email,
         office_college,
+        backup_email,
         signature_token,
         token_expires_at,
         is_signed
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
     `);
 
     const insertAssignmentItem = db.prepare(`
@@ -62,6 +63,7 @@ router.post('/', async (req, res) => {
       employee_id,
       email,
       office_college,
+      backup_email || null,
       signatureToken,
       expiresAt.toISOString(),
     );
@@ -80,14 +82,29 @@ router.post('/', async (req, res) => {
     // Generate signing URL
     const signingUrl = `http://localhost:3000/sign/${signatureToken}`;
 
-    // Send email with signing link (not PDF)
+    // Send email with signing link to primary email
     await sendHandoverEmail({
       email: email,
       employeeName: employee_name,
       signingUrl: signingUrl,
       expiresAt: expiresAt,
-      assetCount: assets.length
+      assetCount: assets.length,
+      isPrimary: true
     });
+
+    // Send email to backup email if provided
+    if (backup_email) {
+      await sendHandoverEmail({
+        email: backup_email,
+        employeeName: employee_name,
+        employeeId: employee_id,
+        primaryEmail: email,
+        signingUrl: signingUrl,
+        expiresAt: expiresAt,
+        assetCount: assets.length,
+        isPrimary: false
+      });
+    }
 
     res.json({
       message: 'Asset handover signing link sent successfully',
@@ -215,7 +232,7 @@ router.get('/sign/:token', (req, res) => {
 router.post('/submit-signature/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    const { location_building, location_floor, location_section, device_type, signature_data } = req.body;
+    const { location_building, location_floor, location_section, device_type, signature_data, signing_email } = req.body;
 
     // Validate required fields (only signature is required, location is optional)
     if (!signature_data) {
@@ -253,6 +270,7 @@ router.post('/submit-signature/:token', async (req, res) => {
         device_type = ?,
         signature_data = ?,
         signature_date = ?,
+        signed_by_email = ?,
         is_signed = 1
       WHERE signature_token = ?
     `);
@@ -264,6 +282,7 @@ router.post('/submit-signature/:token', async (req, res) => {
       device_type || null,
       signature_data,
       now.toISOString(),
+      signing_email || assignment.email,
       token
     );
 
@@ -289,7 +308,9 @@ router.post('/submit-signature/:token', async (req, res) => {
         location_building: location_building,
         location_floor: location_floor,
         location_section: location_section,
-        device_type: device_type
+        device_type: device_type,
+        signed_by_email: signing_email || assignment.email,
+        is_backup_signer: signing_email && signing_email !== assignment.email
       }
     });
 

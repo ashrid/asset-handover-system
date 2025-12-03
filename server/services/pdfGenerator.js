@@ -85,7 +85,9 @@ export async function generateHandoverPDF({ employee, assets, signature = null }
 
       signatureData = {
         signature_data: signature.signature_data,
-        formatted_date: formattedDate
+        formatted_date: formattedDate,
+        signed_by_email: signature.signed_by_email,
+        is_backup_signer: signature.is_backup_signer
       };
     }
 

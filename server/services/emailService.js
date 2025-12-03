@@ -38,7 +38,7 @@ async function getTransporter() {
   return transporter;
 }
 
-export async function sendHandoverEmail({ email, employeeName, signingUrl, expiresAt, assetCount, pdfBuffer }) {
+export async function sendHandoverEmail({ email, employeeName, employeeId, primaryEmail, signingUrl, expiresAt, assetCount, pdfBuffer, isPrimary = true }) {
   try {
     const transporter = await getTransporter();
 
@@ -55,55 +55,97 @@ export async function sendHandoverEmail({ email, employeeName, signingUrl, expir
     // Otherwise, send signing link email (Phase 2)
     const isSignedPDF = !!pdfBuffer;
 
+    // Determine email content based on recipient type (primary or backup)
+    let subject, textContent, htmlContent;
+
+    if (isSignedPDF) {
+      // Signed PDF email (same for both primary and backup)
+      subject = 'Asset Handover - Signed Confirmation - Ajman University';
+      textContent = `Dear ${employeeName},\n\nThank you for signing the Asset Handover Form.\n\nPlease find attached your signed copy for your records.\n\nBest regards,\nAjman University Main Store`;
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: #0969da; padding: 30px; border-radius: 10px 10px 0 0;">
+            <h2 style="color: white; margin: 0; font-size: 24px;">Asset Handover Confirmation</h2>
+          </div>
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; color: #333;">Dear ${employeeName},</p>
+            <p style="font-size: 16px; color: #333;">Thank you for signing the Asset Handover Form.</p>
+            <p style="font-size: 16px; color: #333;">Please find attached your signed copy for your records.</p>
+            <div style="margin: 30px 0; padding: 20px; background: white; border-left: 4px solid #28a745; border-radius: 5px;">
+              <p style="margin: 0; color: #28a745; font-weight: bold;">✓ Signature Confirmed</p>
+            </div>
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
+            <strong style="color: #333;">Ajman University Main Store</strong></p>
+          </div>
+        </div>
+      `;
+    } else if (isPrimary) {
+      // Primary employee signing link email
+      subject = 'Asset Handover - Signature Required - Ajman University';
+      textContent = `Dear ${employeeName},\n\nAssets have been assigned to you. Please review and sign the acknowledgement form:\n\n🔗 Sign Acknowledgement: ${signingUrl}\n\nThis link will expire on ${expiryDate}.\n\nIf you have any issues with the assigned assets, please use the "Dispute Assets" button on the signing page.\n\nBest regards,\nAjman University Main Store`;
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: #0969da; padding: 30px; border-radius: 10px 10px 0 0;">
+            <h2 style="color: white; margin: 0; font-size: 24px;">Asset Handover - Signature Required</h2>
+          </div>
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; color: #333;">Dear ${employeeName},</p>
+            <p style="font-size: 16px; color: #333;">${assetCount} asset${assetCount !== 1 ? 's have' : ' has'} been assigned to you. Please review and sign the acknowledgement form:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${signingUrl}" style="display: inline-block; padding: 15px 40px; background: #0969da; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(9, 105, 218, 0.3);">
+                🔗 Sign Acknowledgement Form
+              </a>
+            </div>
+            <div style="margin: 20px 0; padding: 15px; background: white; border-left: 4px solid #ffc107; border-radius: 5px;">
+              <p style="margin: 0; color: #856404; font-size: 14px;"><strong>⏰ Expires:</strong> ${expiryDate}</p>
+            </div>
+            <p style="font-size: 14px; color: #666;">If you have any issues with the assigned assets, please use the <strong>"Dispute Assets"</strong> button on the signing page.</p>
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
+            <strong style="color: #333;">Ajman University Main Store</strong></p>
+          </div>
+        </div>
+      `;
+    } else {
+      // Backup signer email
+      subject = 'Asset Handover - Signature Required (Backup Signer) - Ajman University';
+      textContent = `Dear Colleague,\n\nYou have been designated as a backup signer for ${employeeName}'s asset acknowledgement.\n\nEmployee: ${employeeName}${employeeId ? ` (ID: ${employeeId})` : ''}\nPrimary Email: ${primaryEmail}\nAssets: ${assetCount} item${assetCount !== 1 ? 's' : ''}\n\nThe employee may be unavailable (vacation, travel, etc.). You may sign this acknowledgement on their behalf:\n\n🔗 Sign Acknowledgement: ${signingUrl}\n\nThis link will expire on ${expiryDate}.\n\nIf you have any questions, please contact the Main Store.\n\nBest regards,\nAjman University Main Store`;
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: #0969da; padding: 30px; border-radius: 10px 10px 0 0;">
+            <h2 style="color: white; margin: 0; font-size: 24px;">Asset Handover - Backup Signer</h2>
+          </div>
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; color: #333;">Dear Colleague,</p>
+            <p style="font-size: 16px; color: #333;">You have been designated as a <strong>backup signer</strong> for the following employee's asset acknowledgement:</p>
+            <div style="margin: 20px 0; padding: 20px; background: white; border-left: 4px solid #0969da; border-radius: 5px;">
+              <p style="margin: 5px 0; color: #333;"><strong>Employee:</strong> ${employeeName}</p>
+              ${employeeId ? `<p style="margin: 5px 0; color: #333;"><strong>Employee ID:</strong> ${employeeId}</p>` : ''}
+              <p style="margin: 5px 0; color: #333;"><strong>Primary Email:</strong> ${primaryEmail}</p>
+              <p style="margin: 5px 0; color: #333;"><strong>Assets:</strong> ${assetCount} item${assetCount !== 1 ? 's' : ''}</p>
+            </div>
+            <p style="font-size: 14px; color: #666;">The employee may be unavailable (vacation, sick leave, business travel, etc.). You may sign this acknowledgement on their behalf:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${signingUrl}" style="display: inline-block; padding: 15px 40px; background: #0969da; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(9, 105, 218, 0.3);">
+                🔗 Sign Acknowledgement Form
+              </a>
+            </div>
+            <div style="margin: 20px 0; padding: 15px; background: white; border-left: 4px solid #ffc107; border-radius: 5px;">
+              <p style="margin: 0; color: #856404; font-size: 14px;"><strong>⏰ Expires:</strong> ${expiryDate}</p>
+            </div>
+            <p style="font-size: 14px; color: #666;">If you have any questions, please contact the Main Store.</p>
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
+            <strong style="color: #333;">Ajman University Main Store</strong></p>
+          </div>
+        </div>
+      `;
+    }
+
     const info = await transporter.sendMail({
       from: process.env.EMAIL_FROM || '"Ajman University Asset Management" <assets@ajman.ac.ae>',
       to: email,
-      subject: isSignedPDF
-        ? 'Asset Handover - Signed Confirmation - Ajman University'
-        : 'Asset Handover - Signature Required - Ajman University',
-      text: isSignedPDF
-        ? `Dear ${employeeName},\n\nThank you for signing the Asset Handover Form.\n\nPlease find attached your signed copy for your records.\n\nBest regards,\nAjman University Main Store`
-        : `Dear ${employeeName},\n\nAssets have been assigned to you. Please review and sign the acknowledgement form:\n\n🔗 Sign Acknowledgement: ${signingUrl}\n\nThis link will expire on ${expiryDate}.\n\nIf you have any issues with the assigned assets, please use the "Dispute Assets" button on the signing page.\n\nBest regards,\nAjman University Main Store`,
-      html: isSignedPDF
-        ? `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: #0969da; padding: 30px; border-radius: 10px 10px 0 0;">
-              <h2 style="color: white; margin: 0; font-size: 24px;">Asset Handover Confirmation</h2>
-            </div>
-            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 16px; color: #333;">Dear ${employeeName},</p>
-              <p style="font-size: 16px; color: #333;">Thank you for signing the Asset Handover Form.</p>
-              <p style="font-size: 16px; color: #333;">Please find attached your signed copy for your records.</p>
-              <div style="margin: 30px 0; padding: 20px; background: white; border-left: 4px solid #28a745; border-radius: 5px;">
-                <p style="margin: 0; color: #28a745; font-weight: bold;">✓ Signature Confirmed</p>
-              </div>
-              <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
-              <strong style="color: #333;">Ajman University Main Store</strong></p>
-            </div>
-          </div>
-        `
-        : `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: #0969da; padding: 30px; border-radius: 10px 10px 0 0;">
-              <h2 style="color: white; margin: 0; font-size: 24px;">Asset Handover - Signature Required</h2>
-            </div>
-            <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
-              <p style="font-size: 16px; color: #333;">Dear ${employeeName},</p>
-              <p style="font-size: 16px; color: #333;">${assetCount} asset${assetCount !== 1 ? 's have' : ' has'} been assigned to you. Please review and sign the acknowledgement form:</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${signingUrl}" style="display: inline-block; padding: 15px 40px; background: #0969da; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(9, 105, 218, 0.3);">
-                  🔗 Sign Acknowledgement Form
-                </a>
-              </div>
-              <div style="margin: 20px 0; padding: 15px; background: white; border-left: 4px solid #ffc107; border-radius: 5px;">
-                <p style="margin: 0; color: #856404; font-size: 14px;"><strong>⏰ Expires:</strong> ${expiryDate}</p>
-              </div>
-              <p style="font-size: 14px; color: #666;">If you have any issues with the assigned assets, please use the <strong>"Dispute Assets"</strong> button on the signing page.</p>
-              <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
-              <strong style="color: #333;">Ajman University Main Store</strong></p>
-            </div>
-          </div>
-        `,
+      subject: subject,
+      text: textContent,
+      html: htmlContent,
       attachments: pdfBuffer ? [
         {
           filename: 'Asset_Handover_Form_Signed.pdf',

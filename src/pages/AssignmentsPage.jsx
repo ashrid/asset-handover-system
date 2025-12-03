@@ -493,12 +493,27 @@ function AssignmentsPage() {
                       </td>
                     </tr>
                     {selectedAssignment.is_signed && selectedAssignment.signature_date && (
-                      <tr>
-                        <th className="bg-table-header-bg text-table-header-text font-semibold">Signed Date:</th>
-                        <td className="text-text-secondary">
-                          {formatDateTime(selectedAssignment.signature_date)}
-                        </td>
-                      </tr>
+                      <>
+                        <tr>
+                          <th className="bg-table-header-bg text-table-header-text font-semibold">Signed Date:</th>
+                          <td className="text-text-secondary">
+                            {formatDateTime(selectedAssignment.signature_date)}
+                          </td>
+                        </tr>
+                        {selectedAssignment.signed_by_email && (
+                          <tr>
+                            <th className="bg-table-header-bg text-table-header-text font-semibold">Signed By:</th>
+                            <td className="text-text-secondary">
+                              {selectedAssignment.signed_by_email}
+                              {selectedAssignment.signed_by_email !== selectedAssignment.email && (
+                                <span className="ml-2 px-2 py-1 bg-warning/20 text-warning rounded text-xs font-semibold">
+                                  <i className="fas fa-user-tie"></i> Backup Signer
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </>
                     )}
                   </tbody>
                 </table>

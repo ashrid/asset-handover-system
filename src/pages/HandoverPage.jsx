@@ -11,6 +11,7 @@ function HandoverPage() {
     employee_name: '',
     employee_id: '',
     email: '',
+    backup_email: '',
     office_college: ''
   })
 
@@ -134,6 +135,7 @@ function HandoverPage() {
         employee_name: '',
         employee_id: '',
         email: '',
+        backup_email: '',
         office_college: ''
       })
       setSelectedAssets([])
@@ -248,6 +250,31 @@ function HandoverPage() {
                 />
                 <i className="fas fa-building absolute left-3 top-1/2 transform -translate-y-1/2 text-text-light"></i>
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-text-primary">
+                Backup Email (Optional)
+                <span className="text-text-secondary text-xs ml-2 font-normal">
+                  For senior/manager to sign if employee unavailable
+                </span>
+              </label>
+              <div className="relative">
+                <input
+                  className="input-premium pl-10"
+                  type="email"
+                  name="backup_email"
+                  value={employeeData.backup_email}
+                  onChange={handleEmployeeChange}
+                  placeholder="senior@example.com"
+                />
+                <i className="fas fa-user-tie absolute left-3 top-1/2 transform -translate-y-1/2 text-text-light"></i>
+              </div>
+              <p className="text-xs text-text-secondary mt-1">
+                If provided, signing link will be sent to both emails
+              </p>
             </div>
           </div>
 
