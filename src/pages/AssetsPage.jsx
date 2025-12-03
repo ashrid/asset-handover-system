@@ -117,15 +117,14 @@ function AssetsPage() {
 
     const searchLower = searchFilter.toLowerCase().trim()
     return assets.filter(asset => {
-      // Format date for searching
+      // Format date for searching (dd-mmm-yyyy)
       let dateString = ''
       if (asset.created_at) {
         const date = new Date(asset.created_at)
-        dateString = date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }).toLowerCase()
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = date.toLocaleDateString('en-US', { month: 'short' })
+        const year = date.getFullYear()
+        dateString = `${day}-${month}-${year}`.toLowerCase()
       }
 
       return (

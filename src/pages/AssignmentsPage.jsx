@@ -7,6 +7,18 @@ function AssignmentsPage() {
   const [message, setMessage] = useState(null)
   const [searchFilter, setSearchFilter] = useState('')
 
+  // Helper function to format dates as dd-mmm-yyyy HH:mm
+  const formatDateTime = (dateString) => {
+    if (!dateString) return ''
+    const date = new Date(dateString)
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = date.toLocaleDateString('en-US', { month: 'short' })
+    const year = date.getFullYear()
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    return `${day}-${month}-${year} ${hours}:${minutes}`
+  }
+
   useEffect(() => {
     fetchAssignments()
   }, [])
@@ -109,26 +121,24 @@ function AssignmentsPage() {
 
     const searchLower = searchFilter.toLowerCase().trim()
     return assignments.filter(assignment => {
-      // Format dates for searching
+      // Format dates for searching (dd-mmm-yyyy)
       let assignedDateString = ''
       let signedDateString = ''
 
       if (assignment.assigned_at) {
         const date = new Date(assignment.assigned_at)
-        assignedDateString = date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }).toLowerCase()
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = date.toLocaleDateString('en-US', { month: 'short' })
+        const year = date.getFullYear()
+        assignedDateString = `${day}-${month}-${year}`.toLowerCase()
       }
 
       if (assignment.signature_date) {
         const date = new Date(assignment.signature_date)
-        signedDateString = date.toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }).toLowerCase()
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = date.toLocaleDateString('en-US', { month: 'short' })
+        const year = date.getFullYear()
+        signedDateString = `${day}-${month}-${year}`.toLowerCase()
       }
 
       // Status text for searching
@@ -269,7 +279,7 @@ function AssignmentsPage() {
                       </span>
                     </td>
                     <td className="text-text-secondary">
-                      {new Date(assignment.assigned_at).toLocaleString()}
+                      {formatDateTime(assignment.assigned_at)}
                     </td>
                     <td>
                       <span className={`badge-premium whitespace-nowrap ${
@@ -454,7 +464,7 @@ function AssignmentsPage() {
                     <tr>
                       <th className="w-2/5 bg-table-header-bg text-table-header-text font-semibold">Assigned Date:</th>
                       <td className="text-text-secondary">
-                        {new Date(selectedAssignment.assigned_at).toLocaleString()}
+                        {formatDateTime(selectedAssignment.assigned_at)}
                       </td>
                     </tr>
                     <tr>
@@ -486,7 +496,7 @@ function AssignmentsPage() {
                       <tr>
                         <th className="bg-table-header-bg text-table-header-text font-semibold">Signed Date:</th>
                         <td className="text-text-secondary">
-                          {new Date(selectedAssignment.signature_date).toLocaleString()}
+                          {formatDateTime(selectedAssignment.signature_date)}
                         </td>
                       </tr>
                     )}

@@ -15,11 +15,10 @@ Handlebars.registerHelper('add', function(a, b) {
 Handlebars.registerHelper('formatDate', function(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = date.toLocaleDateString('en-US', { month: 'short' });
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
 });
 
 // Load and compile template once
@@ -37,12 +36,12 @@ const template = Handlebars.compile(templateSource);
  */
 export async function generateHandoverPDF({ employee, assets, signature = null }) {
   try {
-    // Prepare date
-    const currentDate = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    // Prepare date (dd-mmm-yyyy format)
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = now.toLocaleDateString('en-US', { month: 'short' });
+    const year = now.getFullYear();
+    const currentDate = `${day}-${month}-${year}`;
 
     // Prepare logo (convert to base64 if exists)
     let logoBase64 = null;
@@ -73,15 +72,20 @@ export async function generateHandoverPDF({ employee, assets, signature = null }
     // Prepare signature
     let signatureData = null;
     if (signature && signature.signature_data) {
+      let formattedDate = null;
+      if (signature.signature_date) {
+        const sigDate = new Date(signature.signature_date);
+        const sigDay = String(sigDate.getDate()).padStart(2, '0');
+        const sigMonth = sigDate.toLocaleDateString('en-US', { month: 'short' });
+        const sigYear = sigDate.getFullYear();
+        const hours = String(sigDate.getHours()).padStart(2, '0');
+        const minutes = String(sigDate.getMinutes()).padStart(2, '0');
+        formattedDate = `${sigDay}-${sigMonth}-${sigYear} ${hours}:${minutes}`;
+      }
+
       signatureData = {
         signature_data: signature.signature_data,
-        formatted_date: signature.signature_date ? new Date(signature.signature_date).toLocaleString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }) : null
+        formatted_date: formattedDate
       };
     }
 

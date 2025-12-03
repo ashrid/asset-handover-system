@@ -42,12 +42,14 @@ export async function sendHandoverEmail({ email, employeeName, signingUrl, expir
   try {
     const transporter = await getTransporter();
 
-    // Format expiration date
-    const expiryDate = expiresAt ? new Date(expiresAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }) : '';
+    // Format expiration date (dd-mmm-yyyy)
+    const expiryDate = expiresAt ? (() => {
+      const date = new Date(expiresAt);
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = date.toLocaleDateString('en-US', { month: 'short' });
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    })() : '';
 
     // If pdfBuffer is provided, send signed PDF email (Phase 3)
     // Otherwise, send signing link email (Phase 2)

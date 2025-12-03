@@ -13,17 +13,28 @@
 | ✅ **Resolved** | 4 | #1, #2, #3, #4 |
 | 🟢 **Enhancement** | 1 | PDF System Migration |
 | 🔴 **Critical** | 0 | - |
-| 🟡 **Minor** | 0 | - |
-| **Total** | **5** | |
+| 🟡 **Pending** | 6 | #5, #6, #7, #8, #9, #10 |
+| **Total** | **11** | |
 
-### Current Status - ALL ISSUES RESOLVED ✅
+### Current Status - Phase 2 Complete, Phase 3 Pending ✅
 
-All critical issues have been successfully resolved:
+**Completed Issues (Phase 1 & 2):**
 - ✅ Signature data now properly passed to PDF generator
 - ✅ Device type multi-select checkboxes implemented (optional)
 - ✅ Backend correctly extracts and saves device type
 - ✅ Location dropdowns with admin add functionality implemented
 - ✅ PDF generation system migrated to Puppeteer + HTML templates
+- ✅ Search/filter functionality added to all pages
+- ✅ Date format standardized to dd-mmm-yyyy
+- ✅ Backend-frontend field name discrepancies fixed
+
+**Pending Implementation (Phase 3):**
+- 🟡 Admin resend signing link functionality
+- 🟡 Automated weekly reminder system
+- 🟡 Send signed PDFs to admin email
+- 🟡 Edit assets in existing assignments
+- 🟡 Dispute notification to admin
+- 🟡 Backup email for senior sign-off capability
 
 ### Major Enhancement: PDF System Migration
 
@@ -719,15 +730,646 @@ status = is_signed ? 'Signed'
 
 ---
 
+## 🟡 PENDING ISSUE #5: Admin Resend Signing Link Functionality
+
+**Status:** 🟡 Not Started
+**Priority:** P1 - High
+**Severity:** Important
+**Target Date:** TBD
+**Affected Files:** (To be determined)
+
+### Problem Description
+Currently, if an employee loses their signing link email or the email fails to deliver, the admin has no way to resend the signing link without creating a completely new assignment. This creates unnecessary duplicate records and potential confusion.
+
+### Requirements
+- Admin should be able to resend the signing link from the Assignments page
+- Should use the existing token (not generate a new one)
+- Should validate that the token hasn't expired (30 days)
+- Should work only for assignments that are:
+  - Not yet signed (`is_signed = 0`)
+  - Not disputed (`is_disputed = 0`)
+  - Not expired (`token_expires_at > NOW()`)
+- Should increment a counter to track how many times email was resent
+- Should update `last_reminder_sent` timestamp
+
+### Proposed Implementation
+**Backend API:**
+- `POST /api/assignments/:id/resend-email`
+- Validate assignment status
+- Check token expiration
+- Send email using existing `sendHandoverEmail` function
+- Update database with resend timestamp
+
+**Frontend UI:**
+- Add "Resend Email" button to Assignments page
+- Show button only for pending (unsent/unsigned) assignments
+- Disable button if expired
+- Show confirmation toast on success
+
+### Testing Checklist
+- [ ] Can resend email for pending assignments
+- [ ] Cannot resend for signed assignments
+- [ ] Cannot resend for expired assignments
+- [ ] Email contains correct signing link
+- [ ] Database timestamp updated correctly
+- [ ] Resend counter increments
+
+---
+
+## 🟡 PENDING ISSUE #6: Automated Weekly Reminder System
+
+**Status:** 🟡 Not Started
+**Priority:** P1 - High
+**Severity:** Important
+**Target Date:** TBD
+**Affected Files:** (To be determined)
+
+### Problem Description
+Currently, there is no automated system to remind employees who haven't signed their asset handover forms. Admin must manually track and follow up, which is time-consuming and prone to oversight when dealing with many assignments.
+
+### Requirements
+- Automatically send reminder emails every 7 days for unsigned assignments
+- Stop sending reminders when:
+  - Assignment is signed
+  - Assignment is disputed
+  - Token expires (30 days from creation)
+  - Maximum reminder count reached (e.g., 4 reminders = 28 days)
+- Track number of reminders sent per assignment
+- Include reminder count in email ("This is reminder #2")
+- Reminder should mention days remaining until expiration
+
+### Proposed Implementation
+**Backend Cron Job:**
+- Use `node-cron` package
+- Run daily at specific time (e.g., 9 AM)
+- Query for assignments that need reminders:
+  ```sql
+  WHERE is_signed = 0
+    AND is_disputed = 0
+    AND token_expires_at > NOW()
+    AND (last_reminder_sent IS NULL
+         OR last_reminder_sent < DATE('now', '-7 days'))
+    AND reminder_count < 4
+  ```
+- Send reminder email
+- Update `last_reminder_sent` and increment `reminder_count`
+
+**Email Template:**
+```
+Subject: Reminder #{count}: Asset Handover Signature Required
+
+Dear {Employee Name},
+
+This is reminder #{count} that you have assets assigned to you requiring acknowledgement.
+
+🔗 Sign Acknowledgement: {signing_url}
+
+This link will expire in {days_remaining} days on {expiration_date}.
+
+If you have issues with the assigned assets, use the "Dispute Assets" button.
+
+Best regards,
+Ajman University Main Store
+```
+
+### Testing Checklist
+- [ ] Cron job runs at scheduled time
+- [ ] Identifies correct assignments needing reminders
+- [ ] Sends email with correct reminder count
+- [ ] Updates database timestamps
+- [ ] Stops after assignment signed
+- [ ] Stops after assignment disputed
+- [ ] Stops after token expires
+- [ ] Stops after max reminders reached
+
+---
+
+## 🟡 PENDING ISSUE #7: Send Signed PDFs to Admin Email
+
+**Status:** 🟡 Not Started
+**Priority:** P1 - High
+**Severity:** Important
+**Target Date:** TBD
+**Affected Files:**
+- `server/routes/handover.js` (Email sending logic)
+- `server/services/emailService.js` (Email service)
+
+### Problem Description
+Currently, when an employee signs their asset handover form, only the employee receives a copy of the signed PDF via email. The admin/store personnel do not receive a copy, making it difficult to maintain records and confirm that signatures have been completed.
+
+### Requirements
+- When employee submits signature, send signed PDF to:
+  1. Employee email (already implemented ✓)
+  2. Admin/store email (NOT implemented)
+- Admin email should be configurable via environment variable
+- Email to admin should include:
+  - Employee name and ID
+  - Number of assets signed for
+  - Signed PDF attachment
+  - Timestamp of signature
+- Should work for all signature submissions
+
+### Proposed Implementation
+**Environment Variable:**
+```
+ADMIN_EMAIL=store@ajman.ac.ae
+```
+
+**Backend Update:**
+```javascript
+// After PDF generation in submit-signature endpoint
+// Send to employee (existing)
+await sendHandoverEmail({
+  email: assignment.email,
+  employeeName: assignment.employee_name,
+  pdfBuffer: pdfBuffer
+});
+
+// Send to admin (NEW)
+if (process.env.ADMIN_EMAIL) {
+  await sendHandoverEmail({
+    email: process.env.ADMIN_EMAIL,
+    employeeName: assignment.employee_name,
+    employeeId: assignment.employee_id_number,
+    assetCount: assets.length,
+    pdfBuffer: pdfBuffer,
+    isAdminCopy: true  // Flag to customize email text
+  });
+}
+```
+
+**Email Service Update:**
+- Update `sendHandoverEmail` to handle `isAdminCopy` flag
+- Different subject line for admin: "Asset Handover Signed - {Employee Name}"
+- Different email body mentioning it's a copy for admin records
+
+### Testing Checklist
+- [ ] Admin email environment variable configured
+- [ ] Employee receives signed PDF (existing functionality)
+- [ ] Admin receives signed PDF (new functionality)
+- [ ] Both PDFs are identical
+- [ ] Admin email has appropriate subject/body
+- [ ] Works in development mode (Ethereal)
+- [ ] Works in production mode (SMTP)
+
+---
+
+## 🟡 PENDING ISSUE #8: Edit Assets in Existing Assignments
+
+**Status:** 🟡 Not Started
+**Priority:** P2 - Medium
+**Severity:** Important
+**Target Date:** TBD
+**Affected Files:** (To be determined)
+
+### Problem Description
+After creating an assignment, if the admin realizes they assigned wrong assets or need to add/remove assets, there is no way to edit the assignment. The only option is to delete the entire assignment and create a new one, which wastes time and creates confusion if the employee already received the initial email.
+
+### Requirements
+- Admin can edit assets in unsigned assignments from Assignments page
+- Cannot edit signed assignments (data integrity)
+- Cannot edit disputed assignments until resolved
+- Should show current assigned assets
+- Allow adding new assets from available pool
+- Allow removing currently assigned assets
+- Option to send updated email notification to employee
+- Should maintain same signing token (don't generate new one)
+
+### Proposed Implementation
+**Backend API:**
+- `PUT /api/assignments/:id/assets`
+- Body: `{ asset_ids: [1, 2, 3], send_notification: true }`
+- Validate assignment is not signed/disputed
+- Delete existing assignment_items for this assignment
+- Insert new assignment_items with new asset IDs
+- Optionally send updated email notification
+- Return success response
+
+**Frontend UI:**
+- Add "Edit Assets" button to Assignments page
+- Show button only for unsigned, undisputed assignments
+- Open modal showing:
+  - Currently assigned assets (with remove button)
+  - Available assets list (searchable)
+  - Checkbox to send updated email
+- Save button triggers API call
+- Success toast confirmation
+
+### Testing Checklist
+- [ ] Can edit unsigned assignments
+- [ ] Cannot edit signed assignments
+- [ ] Cannot edit disputed assignments
+- [ ] Can add assets
+- [ ] Can remove assets
+- [ ] Can replace all assets
+- [ ] Optional email notification works
+- [ ] Email contains updated asset list
+- [ ] Same signing token preserved
+- [ ] Database updated correctly
+
+---
+
+## 🟡 PENDING ISSUE #9: Dispute Notification to Admin
+
+**Status:** 🟡 Not Started
+**Priority:** P2 - Medium
+**Severity:** Important
+**Target Date:** TBD
+**Affected Files:**
+- `server/routes/handover.js` (Dispute endpoint)
+- `server/services/emailService.js` (Email service)
+
+### Problem Description
+When an employee disputes an asset assignment (clicks "Dispute Assets" button and provides a reason), the dispute is recorded in the database but no notification is sent to the admin. The admin has to manually check the Assignments page to discover disputes, which can lead to delays in resolution.
+
+### Requirements
+- Send immediate email notification to admin when employee disputes
+- Email should include:
+  - Employee name and ID
+  - Assignment ID
+  - List of disputed assets
+  - Dispute reason provided by employee
+  - Link to view assignment in admin panel (optional)
+- Mark assignment clearly as "Disputed" in Assignments page
+- Show dispute reason in assignment details modal
+
+### Proposed Implementation
+**Backend Update:**
+```javascript
+// In dispute endpoint after database update
+if (process.env.ADMIN_EMAIL) {
+  await sendDisputeNotification({
+    adminEmail: process.env.ADMIN_EMAIL,
+    employeeName: assignment.employee_name,
+    employeeId: assignment.employee_id_number,
+    employeeEmail: assignment.email,
+    assignmentId: assignment.id,
+    assets: assets,
+    disputeReason: dispute_reason
+  });
+}
+```
+
+**New Email Function:**
+```javascript
+export async function sendDisputeNotification({
+  adminEmail,
+  employeeName,
+  employeeId,
+  employeeEmail,
+  assignmentId,
+  assets,
+  disputeReason
+}) {
+  // Send email to admin with dispute details
+}
+```
+
+**Email Template:**
+```
+Subject: Asset Assignment Disputed - {Employee Name}
+
+Asset assignment #{id} has been disputed by the employee.
+
+Employee: {name} (ID: {id})
+Email: {email}
+Assets: {count} items
+
+Dispute Reason:
+"{reason}"
+
+Please review and contact the employee to resolve this issue.
+
+View Assignment: [Link to admin panel]
+```
+
+**Frontend Update:**
+- Show "DISPUTED" badge in Assignments page
+- Add dispute icon/indicator
+- Show dispute reason in assignment details
+- Consider adding "Resolve Dispute" action button
+
+### Testing Checklist
+- [ ] Dispute submission works (existing)
+- [ ] Admin email sent on dispute
+- [ ] Email contains all required information
+- [ ] Dispute visible in Assignments page
+- [ ] Dispute reason displayed correctly
+- [ ] Badge/indicator shows disputed status
+- [ ] Works in dev mode (Ethereal)
+- [ ] Works in production mode (SMTP)
+
+---
+
+## 🟡 PENDING ISSUE #10: Backup Email for Senior Sign-off
+
+**Status:** 🟡 Not Started
+**Priority:** P1 - High
+**Severity:** Important
+**Target Date:** TBD
+**Affected Files:**
+- `src/pages/HandoverPage.jsx` (Add backup email field)
+- `server/routes/handover.js` (Handle backup email)
+- `server/services/emailService.js` (Send to both emails)
+- Database migration (Add backup_email column)
+
+### Problem Description
+When an employee is out of office (vacation, sick leave, travel, etc.), they cannot sign their asset handover acknowledgement. Currently, there's no mechanism for a senior/manager to sign on behalf of the employee who is away from the office.
+
+### Requirements
+- Add optional "Backup Email" field in Asset Handover page
+- Backup email typically for employee's senior/manager
+- Field is optional (not required)
+- If provided, send signing link to BOTH emails:
+  1. Primary employee email
+  2. Backup email (senior/manager)
+- Either person can sign using the same signing link/token
+- Track which email address was used to sign
+- Display in assignment details who signed (primary or backup)
+- PDF should show employee name (not backup person's name)
+- Backup signer acts on behalf of the employee
+
+### Use Cases
+1. **Employee on vacation**: Manager receives backup email, signs on behalf
+2. **Employee sick leave**: Supervisor handles acknowledgement
+3. **Employee business travel**: Department head signs while employee away
+4. **New hire not yet onboarded**: HR manager signs temporarily
+
+### Proposed Implementation
+
+#### Database Migration
+```sql
+-- Add backup_email and signed_by_email columns
+ALTER TABLE asset_assignments ADD COLUMN backup_email TEXT;
+ALTER TABLE asset_assignments ADD COLUMN signed_by_email TEXT;
+
+-- signed_by_email will store which email actually signed:
+-- - employee email (primary)
+-- - backup email (senior)
+```
+
+#### Backend API Changes
+
+**Handover Creation Endpoint (`POST /api/handover`):**
+```javascript
+// Extract backup email from request
+const { employee_name, employee_id, email, office_college, backup_email, asset_ids } = req.body;
+
+// Store in database
+const stmt = db.prepare(`
+  INSERT INTO asset_assignments (
+    employee_name, employee_id_number, email, backup_email, office_college,
+    signature_token, token_expires_at, assigned_at, pdf_sent
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
+`);
+
+stmt.run(
+  employee_name,
+  employee_id || null,
+  email,
+  backup_email || null,  // NEW: Store backup email
+  office_college || null,
+  token,
+  expiresAt.toISOString(),
+  now.toISOString()
+);
+```
+
+**Email Sending Logic:**
+```javascript
+// Send to primary email (existing)
+await sendHandoverEmail({
+  email: email,
+  employeeName: employee_name,
+  signingUrl: signingUrl,
+  expiresAt: expiresAt,
+  assetCount: asset_ids.length,
+  isPrimary: true
+});
+
+// Send to backup email (NEW)
+if (backup_email) {
+  await sendHandoverEmail({
+    email: backup_email,
+    employeeName: employee_name,  // Still employee's name
+    signingUrl: signingUrl,       // Same signing URL/token
+    expiresAt: expiresAt,
+    assetCount: asset_ids.length,
+    isPrimary: false,             // Flag as backup
+    primaryEmail: email           // Include for reference
+  });
+}
+```
+
+**Signature Submission Endpoint (`POST /api/handover/submit-signature/:token`):**
+```javascript
+// Add request header or body to identify which email is signing
+const signingEmail = req.body.signing_email; // From frontend
+
+// After signature validation, store which email signed
+const updateStmt = db.prepare(`
+  UPDATE asset_assignments
+  SET
+    location_building = ?,
+    location_floor = ?,
+    location_section = ?,
+    device_type = ?,
+    signature_data = ?,
+    signature_date = ?,
+    signed_by_email = ?,  // NEW: Track who signed
+    is_signed = 1
+  WHERE signature_token = ?
+`);
+
+updateStmt.run(
+  location_building || null,
+  location_floor || null,
+  location_section || null,
+  device_type || null,
+  signature_data,
+  now.toISOString(),
+  signingEmail,  // NEW: Store signing email
+  token
+);
+```
+
+#### Frontend Changes
+
+**HandoverPage.jsx - Add Backup Email Field:**
+```javascript
+const [employeeData, setEmployeeData] = useState({
+  employee_name: '',
+  employee_id: '',
+  email: '',
+  backup_email: '',  // NEW: Add backup email
+  office_college: ''
+})
+
+// In the form JSX, add after primary email field:
+<div>
+  <label className="block text-sm font-semibold mb-2 text-text-primary">
+    Backup Email (Optional)
+    <span className="text-text-secondary text-xs ml-2">
+      For senior/manager to sign if employee unavailable
+    </span>
+  </label>
+  <div className="relative">
+    <input
+      className="input-premium pl-10"
+      type="email"
+      name="backup_email"
+      value={employeeData.backup_email}
+      onChange={handleEmployeeChange}
+      placeholder="senior@example.com"
+    />
+    <i className="fas fa-user-tie absolute left-3 top-1/2 transform -translate-y-1/2 text-text-light"></i>
+  </div>
+  <p className="text-xs text-text-secondary mt-1">
+    If provided, signing link will be sent to both primary and backup email
+  </p>
+</div>
+```
+
+**SignaturePage.jsx - Track Signing Email:**
+```javascript
+// Detect which email is signing (from URL or assignment data)
+const [signingEmail, setSigningEmail] = useState('');
+
+useEffect(() => {
+  // When assignment data loads, check URL for email hint
+  // Or let user select if both emails are valid
+  if (assignment) {
+    // Could pass ?email=backup@example.com in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const emailHint = urlParams.get('email');
+    setSigningEmail(emailHint || assignment.email);
+  }
+}, [assignment]);
+
+// In signature submission:
+const response = await fetch(`/api/handover/submit-signature/${token}`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    location_building: locationBuilding || null,
+    location_floor: locationFloor || null,
+    location_section: locationSection || null,
+    device_type: deviceType.length > 0 ? deviceType.join(', ') : null,
+    signature_data: signatureData,
+    signing_email: signingEmail  // NEW: Include who is signing
+  })
+});
+```
+
+**AssignmentsPage.jsx - Show Who Signed:**
+```javascript
+// In assignment details modal, show signed_by_email
+{assignment.is_signed && (
+  <div className="mb-4">
+    <label className="block text-sm font-semibold mb-1">Signed By:</label>
+    <div className="text-sm text-text-secondary">
+      {assignment.signed_by_email}
+      {assignment.signed_by_email !== assignment.email && (
+        <span className="ml-2 text-warning">
+          <i className="fas fa-user-tie"></i> (Backup Signer)
+        </span>
+      )}
+    </div>
+  </div>
+)}
+```
+
+#### Email Template Updates
+
+**For Backup Email (Senior/Manager):**
+```
+Subject: Asset Handover - Signature Required (Backup Signer) - Ajman University
+
+Dear Colleague,
+
+You have been designated as a backup signer for {Employee Name}'s asset acknowledgement.
+
+Employee: {Employee Name} (ID: {Employee ID})
+Primary Email: {Primary Email}
+Assets: {Asset Count} items
+
+The employee may be unavailable (vacation, travel, etc.). You may sign this acknowledgement on their behalf:
+
+🔗 Sign Acknowledgement: {Signing URL}
+
+This link will expire on {Expiration Date}.
+
+If you have any questions, please contact the Main Store.
+
+Best regards,
+Ajman University Main Store
+```
+
+### User Experience Flow
+
+1. **Admin creates handover:**
+   - Fills in employee details
+   - Optionally fills in backup email (e.g., manager's email)
+   - Submits handover
+
+2. **Emails sent:**
+   - Primary email sent to employee
+   - Backup email sent to senior/manager (if provided)
+   - Both emails contain the same signing link
+
+3. **Either person can sign:**
+   - Employee signs → Normal flow
+   - Backup signer signs → Marked as backup signer
+   - First signature wins (link becomes invalid after signing)
+
+4. **After signing:**
+   - System tracks who signed (primary or backup email)
+   - PDF generated with employee name (not backup signer)
+   - Assignment marked as signed
+   - Shows "Signed by: [backup email] (Backup Signer)" in admin view
+
+### Testing Checklist
+- [ ] Backup email field appears in Handover page
+- [ ] Backup email is optional (can be left blank)
+- [ ] Email validation works for backup email
+- [ ] Assignment created with backup email stored
+- [ ] Primary email receives signing link
+- [ ] Backup email receives signing link (if provided)
+- [ ] Backup email content mentions backup signer role
+- [ ] Both emails contain same signing URL/token
+- [ ] Employee can sign from primary email
+- [ ] Backup signer can sign from backup email
+- [ ] Only first signature is accepted
+- [ ] System tracks which email signed
+- [ ] Admin view shows who signed (primary or backup)
+- [ ] PDF shows employee name (not backup signer)
+- [ ] Works without backup email (optional field)
+- [ ] Reminders sent to both emails if unsigned
+
+### Security Considerations
+- Same token used for both emails (acceptable - same assignment)
+- First signature wins - second attempt gets "already signed" message
+- Backup signer acts on behalf of employee (authorized delegation)
+- PDF shows employee name to maintain proper record
+- Track which email signed for audit purposes
+
+### Database Schema
+```sql
+-- asset_assignments table additions:
+backup_email TEXT,              -- Optional backup email
+signed_by_email TEXT,           -- Which email actually signed
+```
+
+---
+
 ## 🎉 Summary
 
-All issues have been successfully resolved:
-
+**Phase 1 & 2 Completed:**
 1. ✅ **Critical Issues Fixed:** Signature data, device type collection, device type backend
 2. ✅ **Enhancement Implemented:** Location dropdown system with admin add capability
 3. ✅ **Major Upgrade:** PDF generation system migrated to modern template-based approach
-4. ✅ **Additional Fixes:** PDF status tracking, delete/resend functionality, signature button state
-5. ✅ **Quality Improvements:** Compact location display, terminology updates, logo scaling
+4. ✅ **Additional Fixes:** PDF status tracking, search/filter functionality, date standardization
+5. ✅ **Quality Improvements:** Compact location display, terminology updates, logo scaling, field name consistency
 
 The application now has a complete, functional digital signature workflow with:
 - Multi-device type support (optional)
@@ -736,9 +1378,19 @@ The application now has a complete, functional digital signature workflow with:
 - Easy customization capability
 - Professional appearance
 - Robust error handling
+- Comprehensive search/filter
+- Consistent date formatting
+
+**Phase 3 Pending (6 features):**
+- 🟡 Admin resend signing link functionality (#5)
+- 🟡 Automated weekly reminder system (#6)
+- 🟡 Send signed PDFs to admin email (#7)
+- 🟡 Edit assets in existing assignments (#8)
+- 🟡 Dispute notification to admin (#9)
+- 🟡 Backup email for senior sign-off capability (#10)
 
 ---
 
-**Last Updated:** 2025-12-02
-**Review Status:** ✅ Complete - All Issues Resolved
-**Next Steps:** Monitor for user feedback, potential future enhancements
+**Last Updated:** 2025-12-03
+**Review Status:** ✅ Phase 2 Complete - Phase 3 Pending
+**Next Steps:** Implement Phase 3 features based on priority (#5, #6, #7 are high priority)
