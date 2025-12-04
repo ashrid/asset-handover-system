@@ -38,7 +38,7 @@ async function getTransporter() {
   return transporter;
 }
 
-export async function sendHandoverEmail({ email, employeeName, employeeId, primaryEmail, employeeEmail, officeCollege, signingUrl, expiresAt, assetCount, signatureDate, assignmentId, assets, disputeReason, pdfBuffer, isPrimary = true, isAdminCopy = false, isDispute = false }) {
+export async function sendHandoverEmail({ email, employeeName, employeeId, primaryEmail, employeeEmail, officeCollege, signingUrl, expiresAt, assetCount, signatureDate, assignmentId, assets, disputeReason, pdfBuffer, isPrimary = true, isAdminCopy = false, isDispute = false, isReminder = false, reminderNumber = 1, daysRemaining = 0 }) {
   try {
     const transporter = await getTransporter();
 
@@ -115,6 +115,43 @@ export async function sendHandoverEmail({ email, employeeName, employeeId, prima
             <p style="font-size: 14px; color: #666; margin-top: 30px;">Please review this dispute and take appropriate action through the admin panel.</p>
             <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
             <strong style="color: #333;">Ajman University Asset Management System</strong></p>
+          </div>
+        </div>
+      `;
+    } else if (isReminder) {
+      // Reminder email for unsigned assignments
+      subject = `Reminder #${reminderNumber}: Asset Handover Signature Required - Ajman University`;
+      textContent = `Dear ${employeeName},\n\n` +
+        `This is reminder #${reminderNumber} that you have assets assigned to you requiring acknowledgement.\n\n` +
+        `🔗 Sign Acknowledgement: ${signingUrl}\n\n` +
+        `⏰ This link will expire in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} on ${expiryDate}.\n\n` +
+        `If you have issues with the assigned assets, use the "Dispute Assets" button on the signing page.\n\n` +
+        `Best regards,\nAjman University Main Store`;
+
+      htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: #ffc107; padding: 30px; border-radius: 10px 10px 0 0;">
+            <h2 style="color: #212529; margin: 0; font-size: 24px;">⏰ Reminder #${reminderNumber}: Signature Required</h2>
+          </div>
+          <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+            <p style="font-size: 16px; color: #333;">Dear ${employeeName},</p>
+            <p style="font-size: 16px; color: #333;">This is <strong>reminder #${reminderNumber}</strong> that you have <strong>${assetCount} asset${assetCount !== 1 ? 's' : ''}</strong> assigned to you requiring acknowledgement.</p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${signingUrl}" style="display: inline-block; padding: 15px 40px; background: #0969da; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(9, 105, 218, 0.3);">
+                🔗 Sign Acknowledgement Form
+              </a>
+            </div>
+
+            <div style="margin: 20px 0; padding: 15px; background: white; border-left: 4px solid ${daysRemaining <= 3 ? '#dc2626' : '#ffc107'}; border-radius: 5px;">
+              <p style="margin: 0; color: ${daysRemaining <= 3 ? '#dc2626' : '#856404'}; font-size: 14px;">
+                <strong>⏰ Expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}:</strong> ${expiryDate}
+              </p>
+            </div>
+
+            <p style="font-size: 14px; color: #666;">If you have any issues with the assigned assets, please use the <strong>"Dispute Assets"</strong> button on the signing page.</p>
+            <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
+            <strong style="color: #333;">Ajman University Main Store</strong></p>
           </div>
         </div>
       `;

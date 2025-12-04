@@ -130,6 +130,7 @@ router.get('/assignments', (req, res) => {
         aa.is_signed,
         aa.is_disputed,
         aa.signature_date,
+        aa.signed_by_email,
         aa.token_expires_at,
         aa.reminder_count,
         aa.employee_name,
@@ -554,6 +555,104 @@ router.post('/dispute/:token', async (req, res) => {
     });
   } catch (error) {
     console.error('Error submitting dispute:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Edit assets in an existing assignment (admin only)
+router.put('/assignments/:id/assets', async (req, res) => {
+  try {
+    const assignmentId = req.params.id;
+    const { asset_ids, send_notification } = req.body;
+
+    if (!asset_ids || !Array.isArray(asset_ids) || asset_ids.length === 0) {
+      return res.status(400).json({
+        error: 'asset_ids is required and must be a non-empty array'
+      });
+    }
+
+    // Get assignment details
+    const assignment = db.prepare(`
+      SELECT * FROM asset_assignments WHERE id = ?
+    `).get(assignmentId);
+
+    if (!assignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // Check if assignment can be edited
+    if (assignment.is_signed) {
+      return res.status(403).json({
+        error: 'Cannot edit signed assignments'
+      });
+    }
+
+    if (assignment.is_disputed) {
+      return res.status(403).json({
+        error: 'Cannot edit disputed assignments'
+      });
+    }
+
+    // Delete existing assignment items
+    const deleteStmt = db.prepare(`
+      DELETE FROM assignment_items WHERE assignment_id = ?
+    `);
+    deleteStmt.run(assignmentId);
+
+    // Insert new assignment items
+    const insertStmt = db.prepare(`
+      INSERT INTO assignment_items (assignment_id, asset_id)
+      VALUES (?, ?)
+    `);
+
+    for (const assetId of asset_ids) {
+      insertStmt.run(assignmentId, assetId);
+    }
+
+    // Get updated assets list
+    const assets = db.prepare(`
+      SELECT * FROM assets WHERE id IN (${asset_ids.map(() => '?').join(',')})
+    `).all(...asset_ids);
+
+    // Send updated notification email if requested
+    if (send_notification) {
+      const signingUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/sign/${assignment.signature_token}`;
+      const expiresAt = new Date(assignment.token_expires_at);
+
+      await sendHandoverEmail({
+        email: assignment.email,
+        employeeName: assignment.employee_name,
+        signingUrl: signingUrl,
+        expiresAt: expiresAt,
+        assetCount: assets.length,
+        isPrimary: true
+      });
+
+      // Also send to backup email if exists
+      if (assignment.backup_email) {
+        await sendHandoverEmail({
+          email: assignment.backup_email,
+          employeeName: assignment.employee_name,
+          employeeId: assignment.employee_id_number,
+          primaryEmail: assignment.email,
+          signingUrl: signingUrl,
+          expiresAt: expiresAt,
+          assetCount: assets.length,
+          isPrimary: false
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Assignment updated successfully with ${assets.length} assets${send_notification ? '. Notification emails sent.' : ''}`,
+      assignment: {
+        id: assignment.id,
+        asset_count: assets.length
+      }
+    });
+  } catch (error) {
+    console.error('Error editing assignment assets:', error);
     res.status(500).json({ error: error.message });
   }
 });

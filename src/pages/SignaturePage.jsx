@@ -739,23 +739,12 @@ function SignaturePage() {
             }}>
               Please sign in the box below to acknowledge receipt of the assigned assets.
             </p>
-            <div style={{
-              border: '2px solid var(--theme-border)',
-              borderRadius: '8px',
-              overflow: 'hidden',
-              marginBottom: '15px'
-            }}>
+            <div className="signature-canvas-wrapper">
               <SignatureCanvas
                 ref={sigCanvas}
                 onEnd={handleSignatureEnd}
                 canvasProps={{
-                  width: 600,
-                  height: 200,
-                  style: {
-                    width: '100%',
-                    height: '200px',
-                    background: 'white'
-                  }
+                  className: 'signature-canvas'
                 }}
               />
             </div>

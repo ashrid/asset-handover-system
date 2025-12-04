@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-datepicker/dist/react-datepicker.css";
 
 /* ========================================
    PREMIUM THEME SYSTEM
@@ -137,6 +138,10 @@ body {
 @keyframes shimmer {
   0% { background-position: -1000px 0; }
   100% { background-position: 1000px 0; }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
 }
 
 @keyframes pulse-glow {
@@ -453,6 +458,36 @@ body {
   z-index: 1;
 }
 
+/* Header minimized state (on scroll) */
+.header-minimized {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Compact nav buttons for minimized header */
+.nav-button-compact {
+  position: relative;
+  padding: 0.375rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background: var(--theme-cardBackground);
+  color: var(--theme-textSecondary);
+  border: 1px solid var(--theme-border);
+}
+
+.nav-button-compact:hover {
+  background: var(--theme-primaryLight);
+  border-color: var(--theme-primary);
+  color: var(--theme-primary);
+}
+
+.nav-button-compact.active {
+  background: var(--theme-primary);
+  color: white;
+  border-color: var(--theme-primary);
+}
+
 /* ========================================
    PREMIUM MODAL
    ======================================== */
@@ -584,15 +619,28 @@ body {
 
 /* Mobile devices */
 @media (max-width: 768px) {
+  /* Global font scaling */
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    line-height: 1.4;
+  }
+
   .premium-card {
     border-radius: 12px;
   }
 
   .btn-premium,
   .btn-secondary {
-    padding: 0.625rem 1.25rem;
-    font-size: 0.875rem;
-    width: 100%;
+    padding: 0.4375rem 0.875rem;
+    font-size: 0.75rem;
+  }
+
+  .nav-button {
+    padding: 0.4375rem 0.875rem;
+    font-size: 0.75rem;
   }
 
   .table-premium {
@@ -602,35 +650,60 @@ body {
   }
 
   .table-premium thead th {
-    font-size: 0.75rem;
-    padding: 0.625rem 0.5rem;
+    font-size: 0.625rem;
+    padding: 0.4375rem 0.3125rem;
   }
 
   .table-premium tbody td {
-    padding: 0.625rem 0.5rem;
-    font-size: 0.8125rem;
+    padding: 0.4375rem 0.3125rem;
+    font-size: 0.6875rem;
   }
 
   .modal-content {
-    margin: 0.5rem;
-    max-width: calc(100vw - 1rem);
-    border-radius: 16px;
+    margin: 0.25rem;
+    max-width: calc(100vw - 0.5rem);
+    border-radius: 12px;
   }
 
   .input-premium,
   .textarea-premium,
   .select-premium {
+    padding: 0.4375rem 0.75rem;
     font-size: 16px; /* Prevents zoom on iOS */
   }
 
+  .input-premium,
+  .textarea-premium,
+  .select-premium {
+    font-size: 13px;
+  }
+
+  label {
+    font-size: 0.8125rem;
+  }
+
   .badge-premium {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.625rem;
+    font-size: 0.625rem;
+    padding: 0.125rem 0.4375rem;
   }
 
   .spinner-premium {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
+  }
+
+  /* Text wrapping and overflow */
+  * {
+    word-break: break-word;
+  }
+
+  h1 { font-size: 1.5rem; line-height: 1.2; }
+  h2 { font-size: 1.25rem; line-height: 1.3; }
+  h3 { font-size: 1.125rem; line-height: 1.3; }
+
+  p, .text-text-secondary {
+    font-size: 0.8125rem;
+    line-height: 1.4;
   }
 }
 
@@ -672,12 +745,279 @@ body {
   }
 }
 
+/* ========================================
+  BOTTOM ACTION SHEETS (Mobile)
+  ======================================== */
+
+.bottom-action-sheet {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--theme-cardBackground);
+  border-top: 1px solid var(--theme-border);
+  padding: 1rem;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 30;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 769px) {
+  .bottom-action-sheet {
+    position: static;
+    box-shadow: none;
+    border-top: none;
+    padding: 1.5rem 0 0;
+    margin-top: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .bottom-action-sheet {
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  body.has-bottom-sheet {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.bottom-action-sheet .btn-premium,
+.bottom-action-sheet .btn-secondary {
+  flex: 1;
+  min-width: 140px;
+}
+
+/* ========================================
+  TOAST NOTIFICATIONS (Global)
+  ======================================== */
+
+.toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  max-width: calc(100vw - 3rem);
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: all;
+  margin-bottom: 1rem;
+  max-width: 400px;
+  background: var(--theme-cardBackground);
+  border: 1px solid var(--theme-border);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  animation: slideInRight 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.toast.success {
+  border-left: 4px solid var(--theme-success);
+  background: var(--theme-successLight);
+  color: var(--theme-success);
+}
+
+.toast.error {
+  border-left: 4px solid var(--theme-danger);
+  background: var(--theme-dangerLight);
+  color: var(--theme-danger);
+}
+
+.toast.warning {
+  border-left: 4px solid var(--theme-warning);
+  background: var(--theme-warningLight);
+  color: var(--theme-warning);
+}
+
+.toast.info {
+  border-left: 4px solid var(--theme-info);
+  background: var(--theme-infoLight);
+  color: var(--theme-info);
+}
+
+.toast-content {
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+}
+
+.toast-message {
+  flex: 1;
+  font-weight: 500;
+}
+
+.toast-close {
+  margin-left: auto;
+  padding: 0.25rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1;
+  opacity: 0.6;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+  transition: opacity 0.2s;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Page Transitions */
+.page-transition {
+  position: relative;
+  min-height: 100vh;
+}
+
+.page-enter {
+  animation: fadeInUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.page-leave {
+  animation: fadeOutDown 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+/* Enhanced Tooltips */
+.tooltip {
+  position: relative;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--theme-textPrimary);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--theme-textPrimary);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.tooltip:hover::after,
+.tooltip:focus::after,
+.tooltip:hover::before,
+.tooltip:focus::before {
+  opacity: 1;
+}
+
+/* RTL tooltip adjustment */
+[dir="rtl"] .tooltip::after,
+[dir="rtl"] .tooltip::before {
+  left: auto;
+  right: 50%;
+  transform: translateX(50%);
+}
+
+.chart-container {
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-wrapper {
+  flex: 1;
+  min-height: 300px;
+  max-height: 350px;
+  overflow: hidden;
+  position: relative;
+}
+
+.chart-wrapper canvas {
+  max-height: 100% !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+
 /* Print styles */
 @media print {
   .btn-premium,
   .btn-secondary,
   .modal-overlay,
-  .spinner-premium {
+  .spinner-premium,
+  .toast-container,
+  .tooltip::after,
+  .tooltip::before,
+  .chart-container {
     display: none !important;
   }
 

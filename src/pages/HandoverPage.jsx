@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
+import { useToast } from '../contexts/ToastContext'
+import Skeleton from '../components/Skeleton'
 
 function HandoverPage() {
   const [assets, setAssets] = useState([])
   const [selectedAssets, setSelectedAssets] = useState([])
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [message, setMessage] = useState(null)
+  const { addToast } = useToast()
   const [searchFilter, setSearchFilter] = useState('')
   const [employeeData, setEmployeeData] = useState({
     employee_name: '',
@@ -25,7 +27,7 @@ function HandoverPage() {
       const data = await response.json()
       setAssets(data)
     } catch (error) {
-      setMessage({ type: 'danger', text: 'Failed to fetch assets' })
+      addToast('error', 'Failed to fetch assets')
     } finally {
       setLoading(false)
     }
@@ -102,12 +104,11 @@ function HandoverPage() {
     e.preventDefault()
 
     if (selectedAssets.length === 0) {
-      setMessage({ type: 'danger', text: 'Please select at least one asset' })
+      addToast('error', 'Please select at least one asset')
       return
     }
 
     setSending(true)
-    setMessage(null)
 
     try {
       const response = await fetch('/api/handover', {
@@ -125,10 +126,7 @@ function HandoverPage() {
       }
 
       const result = await response.json()
-      setMessage({
-        type: 'success',
-        text: `Handover email sent successfully to ${employeeData.email}. Check server console for email preview URL (development mode).`
-      })
+      addToast('success', `Handover email sent successfully to ${employeeData.email}. Check server console for email preview URL (development mode).`)
 
       // Reset form
       setEmployeeData({
@@ -139,9 +137,8 @@ function HandoverPage() {
         office_college: ''
       })
       setSelectedAssets([])
-      setTimeout(() => setMessage(null), 10000)
     } catch (error) {
-      setMessage({ type: 'danger', text: error.message })
+      addToast('error', error.message)
     } finally {
       setSending(false)
     }
@@ -149,27 +146,7 @@ function HandoverPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-fadeIn">
-      {message && (
-        <div className={`notification-premium mb-6 ${
-          message.type === 'success' ? 'notification-success' :
-          message.type === 'danger' ? 'notification-danger' :
-          'notification-info'
-        }`}>
-          <i className={`fas text-xl ${
-            message.type === 'success' ? 'fa-check-circle' :
-            message.type === 'danger' ? 'fa-exclamation-circle' :
-            'fa-info-circle'
-          }`}></i>
-          <span className="flex-1">{message.text}</span>
-          <button
-            onClick={() => setMessage(null)}
-            className="text-2xl font-bold leading-none opacity-50 hover:opacity-100 transition-opacity"
-          >
-            &times;
-          </button>
-        </div>
-      )}
-
+      
       <div className="premium-card p-8">
         <h2 className="text-2xl font-bold mb-2 gradient-text">
           Asset Handover
@@ -321,14 +298,20 @@ function HandoverPage() {
           )}
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="spinner-premium"></div>
-              <p className="mt-4 text-text-secondary">Loading assets...</p>
+            <div className="space-y-4 py-12">
+              <Skeleton variant="text" height="h-6" width="w-48" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} variant="card" height="h-16" className="border rounded-lg" />
+                ))}
+              </div>
             </div>
           ) : assets.length === 0 ? (
-            <div className="notification-premium notification-info">
-              <i className="fas fa-info-circle text-xl"></i>
-              <span>No assets available. Please add assets first.</span>
+            <div className="notification-premium notification-info text-center py-12">
+              <i className="fas fa-box-open text-4xl mb-4 opacity-75"></i>
+              <h3 className="text-xl font-bold mb-2">No Assets Yet</h3>
+              <p className="text-text-secondary mb-4">Add your first asset to get started.</p>
+              <button className="btn-premium" onClick={() => window.location.href = '/assets'}>Go to Assets</button>
             </div>
           ) : (
             <>
@@ -348,12 +331,14 @@ function HandoverPage() {
               </div>
 
               {getFilteredAssets().length === 0 ? (
-                <div className="notification-premium notification-info">
-                  <i className="fas fa-info-circle text-xl"></i>
-                  <span>No assets match your search criteria. Try a different search term.</span>
+                <div className="notification-premium notification-info text-center py-12">
+                  <i className="fas fa-search text-4xl mb-4 opacity-75"></i>
+                  <h3 className="text-xl font-bold mb-2">No Matching Assets</h3>
+                  <p className="text-text-secondary mb-4">Try adjusting your search terms.</p>
+                  <button className="btn-secondary" onClick={clearFilter}>Clear Search</button>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar border border rounded-lg p-4 bg-background/50">
+                <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar border rounded-lg p-4 bg-background/50">
                   {getFilteredAssets().map(asset => (
                   <div
                     key={asset.id}
@@ -395,7 +380,7 @@ function HandoverPage() {
             </>
           )}
 
-          <div className="flex justify-end gap-3 mt-8 pt-6 border-t border">
+          <div className="bottom-action-sheet">
             <button
               type="submit"
               className={`btn-premium flex items-center gap-2 ${sending ? 'opacity-75 cursor-not-allowed' : ''}`}

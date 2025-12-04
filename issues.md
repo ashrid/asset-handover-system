@@ -824,13 +824,17 @@ if (now > expiresAt) return 410; // Expired
 
 ---
 
-## 🟡 PENDING ISSUE #6: Automated Weekly Reminder System
+## ✅ RESOLVED ISSUE #6: Automated Weekly Reminder System
 
-**Status:** 🟡 Not Started
+**Status:** ✅ Resolved
 **Priority:** P1 - High
 **Severity:** Important
-**Target Date:** TBD
-**Affected Files:** (To be determined)
+**Resolution Date:** 2025-12-03
+**Affected Files:**
+- `server/services/reminderService.js` (CREATED - Reminder service with cron job)
+- `server/services/emailService.js:41, 121-157` (Reminder email template)
+- `server/index.js:8, 20, 33-48` (Service initialization and manual trigger endpoint)
+- `.env.example:16-28` (Configuration variables)
 
 ### Problem Description
 Currently, there is no automated system to remind employees who haven't signed their asset handover forms. Admin must manually track and follow up, which is time-consuming and prone to oversight when dealing with many assignments.
@@ -963,13 +967,16 @@ if (process.env.ADMIN_EMAIL) {
 
 ---
 
-## 🟡 PENDING ISSUE #8: Edit Assets in Existing Assignments
+## ✅ RESOLVED ISSUE #8: Edit Assets in Existing Assignments
 
-**Status:** 🟡 Not Started
+**Status:** ✅ Resolved
 **Priority:** P2 - Medium
 **Severity:** Important
-**Target Date:** TBD
-**Affected Files:** (To be determined)
+**Resolution Date:** 2025-12-03
+**Affected Files:**
+- `server/routes/handover.js:561-657` (PUT endpoint for editing assets)
+- `src/components/EditAssetsModal.jsx` (CREATED - Edit assets modal UI)
+- `src/pages/AssignmentsPage.jsx:2, 8, 119-136, 339-354, 563-579, 623-629` (Edit button and integration)
 
 ### Problem Description
 After creating an assignment, if the admin realizes they assigned wrong assets or need to add/remove assets, there is no way to edit the assignment. The only option is to delete the entire assignment and create a new one, which wastes time and creates confusion if the employee already received the initial email.

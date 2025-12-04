@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { themes, applyTheme, getStoredTheme } from '../themes'
 
-function ThemeSwitcher() {
+function ThemeSwitcher({ compact = false }) {
   const [isOpen, setIsOpen] = useState(false)
   const [currentTheme, setCurrentTheme] = useState(getStoredTheme())
   const dropdownRef = useRef(null)
@@ -31,12 +31,12 @@ function ThemeSwitcher() {
   return (
     <div className="relative" ref={dropdownRef}>
       <button
-        className="nav-button flex items-center gap-2"
+        className={`${compact ? 'nav-button-compact' : 'nav-button'} flex items-center gap-2`}
         onClick={() => setIsOpen(!isOpen)}
         title="Change Theme"
       >
         <i className="fas fa-palette"></i>
-        <span>Themes</span>
+        {!compact && <span>Themes</span>}
         <i className={`fas fa-chevron-down text-xs transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}></i>
       </button>
 

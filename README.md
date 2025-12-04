@@ -14,6 +14,10 @@ A web application for Ajman University to manage asset assignments to employees 
   - Signature field
 - **Email Notifications**: Sends formatted emails with PDF attachments to employees
 - **Assignment Tracking**: View all asset assignments with status and details
+- **Edit Assets**: Modify assigned assets in unsigned assignments with optional email notification
+- **Automated Reminders**: Weekly email reminders for unsigned assignments (configurable schedule)
+- **Admin Notifications**: Automatically sends signed PDFs and dispute alerts to admin email
+- **Backup Email Support**: Secondary email for senior sign-off when employee is unavailable
 - **Multi-Theme System**: Choose from 8 professional color themes with instant switching and persistent preferences
 
 ## Theme System
@@ -107,7 +111,39 @@ SMTP_SECURE=false
 SMTP_USER=your-email@yourdomain.com
 SMTP_PASS=your-password
 EMAIL_FROM="Ajman University Asset Management <assets@ajman.ac.ae>"
+ADMIN_EMAIL=store@ajman.ac.ae
+BASE_URL=https://yourdomain.com
 ```
+
+## Automated Reminders
+
+The system automatically sends reminder emails for unsigned assignments:
+- **Schedule**: Daily at 9:00 AM (configurable via `REMINDER_CRON_SCHEDULE`)
+- **Frequency**: Every 7 days
+- **Maximum**: 4 reminders (28 days total)
+- **Stops When**: Assignment is signed, disputed, or token expires
+
+### Configuration
+```env
+REMINDER_CRON_SCHEDULE=0 9 * * *  # Daily at 9 AM
+TZ=Asia/Dubai                      # Timezone
+```
+
+### Manual Trigger (Testing)
+```bash
+curl -X POST http://localhost:3001/api/reminders/trigger
+```
+
+## Edit Assets Feature
+
+Admins can modify assigned assets in unsigned assignments:
+1. Navigate to "View Assignments"
+2. Click "Edit Assets" button (only visible for unsigned assignments)
+3. Add or remove assets from the assignment
+4. Optionally send updated email notification
+5. Click "Save Changes"
+
+**Note**: Editing preserves the original signing token/link.
 
 ## Database
 
@@ -137,6 +173,15 @@ The SQLite database (`server/assets.db`) is automatically created on first run w
 - `POST /api/handover` - Create assignment and send handover email
 - `GET /api/handover/assignments` - Get all assignments
 - `GET /api/handover/assignments/:id` - Get assignment details
+- `PUT /api/handover/assignments/:id/assets` - Edit assets in assignment
+- `POST /api/handover/resend/:id` - Resend signing email
+- `DELETE /api/handover/assignments/:id` - Delete assignment
+- `GET /api/handover/sign/:token` - Get assignment by signing token (public)
+- `POST /api/handover/submit-signature/:token` - Submit signature (public)
+- `POST /api/handover/dispute/:token` - Submit dispute (public)
+
+### Reminders
+- `POST /api/reminders/trigger` - Manually trigger reminder check
 
 ## Project Structure
 
