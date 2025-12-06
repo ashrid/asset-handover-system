@@ -3,19 +3,14 @@ import { nanoid } from 'nanoid';
 import db from '../database.js';
 import { generateHandoverPDF } from '../services/pdfGenerator.js';
 import { sendHandoverEmail } from '../services/emailService.js';
+import { handoverValidation } from '../middleware/validation.js';
 
 const router = express.Router();
 
 // Create asset assignment and send handover email
-router.post('/', async (req, res) => {
+router.post('/', handoverValidation.create, async (req, res) => {
   try {
     const { employee_name, employee_id, email, office_college, backup_email, asset_ids } = req.body;
-
-    if (!employee_name || !email || !asset_ids || asset_ids.length === 0) {
-      return res.status(400).json({
-        error: 'Employee Name, Email, and at least one asset are required'
-      });
-    }
 
     // Start transaction
     const insertEmployee = db.prepare(`
@@ -230,15 +225,10 @@ router.get('/sign/:token', (req, res) => {
 });
 
 // Submit signature (public endpoint)
-router.post('/submit-signature/:token', async (req, res) => {
+router.post('/submit-signature/:token', handoverValidation.submitSignature, async (req, res) => {
   try {
     const { token } = req.params;
     const { location_building, location_floor, location_section, device_type, signature_data, signing_email } = req.body;
-
-    // Validate required fields (only signature is required, location is optional)
-    if (!signature_data) {
-      return res.status(400).json({ error: 'Signature is required' });
-    }
 
     // Get assignment by token
     const assignment = db.prepare(`
@@ -397,7 +387,7 @@ router.delete('/assignments/:id', (req, res) => {
 });
 
 // Resend signing email
-router.post('/resend/:id', async (req, res) => {
+router.post('/resend/:id', handoverValidation.resend, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -487,14 +477,10 @@ router.post('/resend/:id', async (req, res) => {
 });
 
 // Submit dispute (public endpoint)
-router.post('/dispute/:token', async (req, res) => {
+router.post('/dispute/:token', handoverValidation.submitDispute, async (req, res) => {
   try {
     const { token } = req.params;
     const { dispute_reason } = req.body;
-
-    if (!dispute_reason || !dispute_reason.trim()) {
-      return res.status(400).json({ error: 'Dispute reason is required' });
-    }
 
     // Get assignment by token
     const assignment = db.prepare(`
@@ -560,16 +546,10 @@ router.post('/dispute/:token', async (req, res) => {
 });
 
 // Edit assets in an existing assignment (admin only)
-router.put('/assignments/:id/assets', async (req, res) => {
+router.put('/assignments/:id/assets', handoverValidation.updateAssets, async (req, res) => {
   try {
     const assignmentId = req.params.id;
     const { asset_ids, send_notification } = req.body;
-
-    if (!asset_ids || !Array.isArray(asset_ids) || asset_ids.length === 0) {
-      return res.status(400).json({
-        error: 'asset_ids is required and must be a non-empty array'
-      });
-    }
 
     // Get assignment details
     const assignment = db.prepare(`

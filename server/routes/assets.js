@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../database.js';
+import { assetValidation } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Create asset
-router.post('/', (req, res) => {
+router.post('/', assetValidation.create, (req, res) => {
   try {
     const {
       asset_code,
@@ -86,7 +87,7 @@ router.post('/', (req, res) => {
 });
 
 // Update asset
-router.put('/:id', (req, res) => {
+router.put('/:id', assetValidation.update, (req, res) => {
   try {
     const {
       asset_code,
@@ -141,7 +142,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete asset
-router.delete('/:id', (req, res) => {
+router.delete('/:id', assetValidation.delete, (req, res) => {
   try {
     const stmt = db.prepare('DELETE FROM assets WHERE id = ?');
     const result = stmt.run(req.params.id);

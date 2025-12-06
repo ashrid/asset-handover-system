@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer';
+import { createModuleLogger, logEmailSent } from './logger.js';
+
+const logger = createModuleLogger('email-service');
 
 // Configure email transporter
 // For development, using ethereal.email (test email service)
@@ -19,6 +22,7 @@ async function getTransporter() {
         pass: process.env.SMTP_PASS
       }
     });
+    logger.info({ host: process.env.SMTP_HOST }, 'Using configured SMTP server');
   } else {
     // Development: Create ethereal test account
     const testAccount = await nodemailer.createTestAccount();
@@ -31,8 +35,7 @@ async function getTransporter() {
         pass: testAccount.pass
       }
     });
-    console.log('Using Ethereal email for development');
-    console.log('Test account:', testAccount.user);
+    logger.info({ user: testAccount.user }, 'Using Ethereal email for development');
   }
 
   return transporter;
@@ -286,16 +289,30 @@ export async function sendHandoverEmail({ email, employeeName, employeeId, prima
       ] : []
     });
 
-    console.log('Email sent:', info.messageId);
+    // Determine email type for logging
+    const emailType = isDispute ? 'dispute' :
+      isReminder ? 'reminder' :
+      isAdminCopy ? 'admin-copy' :
+      pdfBuffer ? 'signed-pdf' :
+      isPrimary ? 'signing-link' : 'backup-signer';
+
+    logEmailSent(emailType, email, true);
 
     // For development, log the preview URL
     if (!process.env.SMTP_HOST) {
-      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+      logger.debug({ previewUrl: nodemailer.getTestMessageUrl(info) }, 'Email preview available');
     }
 
     return info;
   } catch (error) {
-    console.error('Error sending email:', error);
+    // Determine email type for logging
+    const emailType = isDispute ? 'dispute' :
+      isReminder ? 'reminder' :
+      isAdminCopy ? 'admin-copy' :
+      pdfBuffer ? 'signed-pdf' :
+      isPrimary ? 'signing-link' : 'backup-signer';
+
+    logEmailSent(emailType, email, false, error);
     throw error;
   }
 }

@@ -1,6 +1,9 @@
 import cron from 'node-cron';
 import db from '../database.js';
 import { sendHandoverEmail } from './emailService.js';
+import { createModuleLogger, logReminderService } from './logger.js';
+
+const logger = createModuleLogger('reminder-service');
 
 /**
  * Automated Reminder Service
@@ -10,7 +13,7 @@ import { sendHandoverEmail } from './emailService.js';
 
 // Function to send reminders for unsigned assignments
 export async function sendReminders() {
-  console.log('[Reminder Service] Running daily reminder check...');
+  logReminderService('check-started');
 
   try {
     // Query for assignments that need reminders
@@ -45,11 +48,11 @@ export async function sendReminders() {
     const assignments = stmt.all();
 
     if (assignments.length === 0) {
-      console.log('[Reminder Service] No assignments need reminders at this time.');
+      logReminderService('no-reminders-needed');
       return { sent: 0, failed: 0 };
     }
 
-    console.log(`[Reminder Service] Found ${assignments.length} assignment(s) needing reminders`);
+    logger.info({ count: assignments.length }, `Found ${assignments.length} assignment(s) needing reminders`);
 
     let sent = 0;
     let failed = 0;
@@ -86,18 +89,26 @@ export async function sendReminders() {
         `);
         updateStmt.run(assignment.id);
 
-        console.log(`[Reminder Service] ✓ Sent reminder #${reminderNumber} to ${assignment.employee_name} (${assignment.email})`);
+        logger.info({
+          assignmentId: assignment.id,
+          reminderNumber,
+          daysRemaining,
+          employeeName: assignment.employee_name
+        }, `Sent reminder #${reminderNumber}`);
         sent++;
       } catch (error) {
-        console.error(`[Reminder Service] ✗ Failed to send reminder for assignment ${assignment.id}:`, error.message);
+        logger.error({
+          assignmentId: assignment.id,
+          error: error.message
+        }, 'Failed to send reminder');
         failed++;
       }
     }
 
-    console.log(`[Reminder Service] Summary: ${sent} sent, ${failed} failed`);
+    logReminderService('check-completed', { sent, failed });
     return { sent, failed };
   } catch (error) {
-    console.error('[Reminder Service] Error in reminder check:', error);
+    logger.error({ error }, 'Error in reminder check');
     throw error;
   }
 }
@@ -107,24 +118,24 @@ export function startReminderService() {
   // Run daily at 9:00 AM (0 9 * * *)
   // For testing: Run every minute (*/1 * * * *)
   const schedule = process.env.REMINDER_CRON_SCHEDULE || '0 9 * * *';
+  const timezone = process.env.TZ || 'Asia/Dubai';
 
-  console.log(`[Reminder Service] Initializing with schedule: ${schedule}`);
+  logger.info({ schedule, timezone }, 'Initializing reminder service');
 
   const job = cron.schedule(schedule, async () => {
-    console.log('[Reminder Service] Cron job triggered');
+    logger.info('Cron job triggered');
     await sendReminders();
   }, {
-    timezone: process.env.TZ || 'Asia/Dubai' // Ajman University timezone
+    timezone
   });
 
-  console.log('[Reminder Service] Service started successfully');
-  console.log(`[Reminder Service] Next run: ${schedule} (${process.env.TZ || 'Asia/Dubai'})`);
+  logger.info({ schedule, timezone }, 'Reminder service started');
 
   return job;
 }
 
 // Manual trigger function (for testing)
 export async function triggerManualReminder() {
-  console.log('[Reminder Service] Manual reminder trigger requested');
+  logger.info('Manual reminder trigger requested');
   return await sendReminders();
 }

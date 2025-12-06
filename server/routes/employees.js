@@ -1,5 +1,6 @@
 import express from 'express';
 import db from '../database.js';
+import { employeeValidation } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -27,13 +28,9 @@ router.get('/:id', (req, res) => {
 });
 
 // Create employee
-router.post('/', (req, res) => {
+router.post('/', employeeValidation.create, (req, res) => {
   try {
     const { employee_name, employee_id, email, office_college } = req.body;
-
-    if (!employee_name || !email) {
-      return res.status(400).json({ error: 'Employee Name and Email are required' });
-    }
 
     const stmt = db.prepare(`
       INSERT INTO employees (employee_name, employee_id, email, office_college)
@@ -49,7 +46,7 @@ router.post('/', (req, res) => {
 });
 
 // Update employee
-router.put('/:id', (req, res) => {
+router.put('/:id', employeeValidation.update, (req, res) => {
   try {
     const { employee_name, employee_id, email, office_college } = req.body;
 
@@ -73,7 +70,7 @@ router.put('/:id', (req, res) => {
 });
 
 // Delete employee
-router.delete('/:id', (req, res) => {
+router.delete('/:id', employeeValidation.delete, (req, res) => {
   try {
     const stmt = db.prepare('DELETE FROM employees WHERE id = ?');
     const result = stmt.run(req.params.id);

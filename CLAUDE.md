@@ -27,7 +27,31 @@ Asset Handover Management System for Ajman University - a full-stack web applica
   - PDF generation (`pdfGenerator.js`)
   - Email handling (`emailService.js`)
   - Automated reminders (`reminderService.js`)
+  - Structured logging (`logger.js`)
+  - Error tracking (`sentry.js`)
+- **Middleware**:
+  - Request logging (`middleware/requestLogger.js`)
+  - Error handling (`middleware/errorHandler.js`)
 - **Migrations**: Database schema updates in `server/migrations/`
+
+### Observability Stack
+- **Logging**: Pino (structured JSON logging)
+  - Pretty-print in development, JSON in production
+  - Module-specific child loggers
+  - Sensitive data redaction
+- **Error Tracking**: Sentry (optional, production)
+  - Automatic exception capture
+  - Request context included
+- **Health Checks**: `/api/health/*`
+  - Basic: `/api/health`
+  - Detailed: `/api/health/detailed` (DB, memory, config status)
+  - Kubernetes probes: `/api/health/live`, `/api/health/ready`
+
+### Security Stack
+- **Headers**: Helmet (CSP, HSTS, XSS protection, etc.)
+- **Validation**: express-validator on all mutation routes
+- **CSRF Protection**: Content-Type + Origin validation
+- **Middleware**: `middleware/security.js`, `middleware/validation.js`, `middleware/csrf.js`
 
 ### Database Schema
 
@@ -309,6 +333,110 @@ npm run dev:server
 5. Click "Sign Acknowledgement"
 6. Check both employee and admin receive signed PDFs
 
+## Automated Testing
+
+### Test Commands
+```bash
+# Run all tests (unit + integration)
+npm test
+
+# Watch mode for development
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+
+# Run only unit tests
+npm run test:unit
+
+# Run only integration tests
+npm run test:integration
+
+# Run E2E tests (requires browser)
+npm run playwright:install  # First time only
+npm run test:e2e
+
+# E2E with visual UI
+npm run test:e2e:ui
+```
+
+### Test Structure
+```
+tests/
+├── setup/
+│   ├── globalSetup.js    # Global test initialization
+│   ├── testSetup.js      # Database initialization
+│   └── testApp.js        # Test Express app factory
+├── fixtures/
+│   └── testData.js       # Shared test data
+├── unit/
+│   └── validation.test.js  # Validation middleware tests
+├── integration/
+│   ├── assets.test.js    # Assets API tests
+│   └── employees.test.js # Employees API tests
+└── e2e/
+    ├── navigation.spec.js  # Navigation tests
+    └── assets.spec.js      # Asset management tests
+```
+
+### Writing Tests
+
+#### Unit Tests
+Test pure logic (validation, utilities):
+```javascript
+import { describe, it, expect } from 'vitest';
+
+describe('Validation', () => {
+  it('should validate email format', () => {
+    // Test logic here
+  });
+});
+```
+
+#### Integration Tests
+Test API endpoints with database:
+```javascript
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import request from 'supertest';
+import { createTestApp, cleanupTestDb, closeTestDb } from '../setup/testApp.js';
+
+describe('Assets API', () => {
+  let app, db;
+
+  beforeAll(async () => {
+    const result = await createTestApp();
+    app = result.app;
+    db = result.db;
+  });
+
+  afterAll(() => closeTestDb(db));
+  beforeEach(() => cleanupTestDb(db));
+
+  it('should create asset', async () => {
+    const response = await request(app)
+      .post('/api/assets')
+      .send({ asset_code: 'TEST-001', asset_type: 'Laptop' })
+      .expect(201);
+
+    expect(response.body.asset_code).toBe('TEST-001');
+  });
+});
+```
+
+#### E2E Tests
+Test full user workflows:
+```javascript
+import { test, expect } from '@playwright/test';
+
+test('should create new asset', async ({ page }) => {
+  await page.goto('/assets');
+  await page.getByRole('button', { name: /add/i }).click();
+  await page.getByLabel(/asset code/i).fill('TEST-001');
+  await page.getByRole('button', { name: /save/i }).click();
+  await expect(page.getByText('TEST-001')).toBeVisible();
+});
+```
+
 ## Environment Configuration
 
 Create `.env` file (copy from `.env.example`):
@@ -447,7 +575,14 @@ This project uses the latest stable versions as of December 2024:
 
 ## Project Status
 
-**Current Phase:** Phase 3 Complete (December 2025)
-**Next Phase:** Phase 4 - UI Enhancements (Planned)
+**Current Phase:** Phase 4 Complete (December 2025)
+**Technical Debt:** Observability, Security Hardening, Testing Infrastructure - Complete
+
+### Completed Technical Debt
+- **Observability**: Pino logging, Sentry error tracking, health checks
+- **Security Hardening**: Helmet headers, express-validator, CSRF protection
+- **Testing Infrastructure**: Vitest (36 tests), Playwright E2E tests
+
+**Next Phase:** Phase 5 - Advanced Features (User Authentication)
 
 See `ROADMAP.md` for detailed phase breakdown and future plans.
