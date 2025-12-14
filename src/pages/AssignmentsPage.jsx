@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
 import Skeleton from '../components/Skeleton'
 import EditAssetsModal from '../components/EditAssetsModal'
+import TransferModal from '../components/TransferModal'
 import SearchFilterPanel from '../components/SearchFilterPanel'
 
 function AssignmentsPage() {
@@ -9,6 +10,7 @@ function AssignmentsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedAssignment, setSelectedAssignment] = useState(null)
   const [editingAssignment, setEditingAssignment] = useState(null)
+  const [transferringAssignment, setTransferringAssignment] = useState(null)
   const { addToast } = useToast()
   const [searchFilter, setSearchFilter] = useState('')
   const [filters, setFilters] = useState({
@@ -145,6 +147,21 @@ function AssignmentsPage() {
     if (selectedAssignment && selectedAssignment.id === editingAssignment.id) {
       handleViewDetails(selectedAssignment.id)
     }
+  }
+
+  const handleTransfer = async (assignmentId) => {
+    try {
+      const response = await fetch(`/api/handover/assignments/${assignmentId}`)
+      const data = await response.json()
+      setTransferringAssignment(data)
+    } catch (error) {
+      addToast('error', 'Failed to load assignment for transfer')
+    }
+  }
+
+  const handleTransferSuccess = (successMessage) => {
+    addToast('success', successMessage)
+    fetchAssignments()
   }
 
   const getFilteredAssignments = () => {
@@ -395,28 +412,48 @@ function AssignmentsPage() {
                         {formatDateTime(assignment.assigned_at)}
                       </td>
                       <td>
-                        <span className={`badge-premium whitespace-nowrap ${
-                          assignment.is_signed
-                            ? 'badge-success'
-                            : assignment.pdf_sent
-                              ? 'badge-info'
-                              : 'badge-warning'
-                        }`}>
-                          <i className={`fas fa-${
+                        <div className="flex flex-wrap gap-1">
+                          <span className={`badge-premium whitespace-nowrap ${
                             assignment.is_signed
-                              ? 'check-circle'
-                              : assignment.pdf_sent
-                                ? 'envelope'
-                                : 'clock'
-                          }`}></i>
-                          <span>
-                            {assignment.is_signed
-                              ? 'Signed'
-                              : assignment.pdf_sent
-                                ? 'Sent'
-                                : 'Pending'}
+                              ? 'badge-success'
+                              : assignment.is_disputed
+                                ? 'badge-error'
+                                : assignment.pdf_sent
+                                  ? 'badge-info'
+                                  : 'badge-warning'
+                          }`}>
+                            <i className={`fas fa-${
+                              assignment.is_signed
+                                ? 'check-circle'
+                                : assignment.is_disputed
+                                  ? 'exclamation-triangle'
+                                  : assignment.pdf_sent
+                                    ? 'envelope'
+                                    : 'clock'
+                            }`}></i>
+                            <span>
+                              {assignment.is_signed
+                                ? 'Signed'
+                                : assignment.is_disputed
+                                  ? 'Disputed'
+                                  : assignment.pdf_sent
+                                    ? 'Sent'
+                                    : 'Pending'}
+                            </span>
                           </span>
-                        </span>
+                          {assignment.transfer_status === 'transferred_out' && (
+                            <span className="badge-premium whitespace-nowrap" style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white' }}>
+                              <i className="fas fa-arrow-right"></i>
+                              <span>Transferred</span>
+                            </span>
+                          )}
+                          {assignment.transfer_status === 'transferred_in' && (
+                            <span className="badge-premium whitespace-nowrap" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)', color: 'white' }}>
+                              <i className="fas fa-arrow-left"></i>
+                              <span>Via Transfer</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -452,6 +489,22 @@ function AssignmentsPage() {
                             >
                               <i className="fas fa-paper-plane"></i>
                               <span>Resend</span>
+                            </button>
+                          )}
+                          {assignment.is_signed && !assignment.is_disputed && !assignment.transfer_status && (
+                            <button
+                              className="inline-flex items-center gap-2 text-sm py-2 px-4 rounded-lg font-medium transition-all duration-200"
+                              style={{
+                                background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                                color: 'white',
+                                border: 'none',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => handleTransfer(assignment.id)}
+                              title="Transfer assets to another employee"
+                            >
+                              <i className="fas fa-exchange-alt"></i>
+                              <span>Transfer</span>
                             </button>
                           )}
                           {!assignment.is_signed && (
@@ -670,6 +723,24 @@ function AssignmentsPage() {
                     <span>Edit Assets</span>
                   </button>
                 )}
+                {selectedAssignment.is_signed && !selectedAssignment.is_disputed && !selectedAssignment.transfer_status && (
+                  <button
+                    className="inline-flex items-center gap-2 py-2 px-4 rounded-lg font-medium transition-all duration-200"
+                    style={{
+                      background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                      color: 'white',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      handleTransfer(selectedAssignment.id)
+                      closeModal()
+                    }}
+                  >
+                    <i className="fas fa-exchange-alt"></i>
+                    <span>Transfer Assets</span>
+                  </button>
+                )}
                 {selectedAssignment.pdf_sent && !selectedAssignment.is_signed && !selectedAssignment.is_disputed && (
                   <button
                     className="btn-secondary inline-flex items-center gap-2"
@@ -717,6 +788,14 @@ function AssignmentsPage() {
           assignment={editingAssignment}
           onClose={() => setEditingAssignment(null)}
           onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {transferringAssignment && (
+        <TransferModal
+          assignment={transferringAssignment}
+          onClose={() => setTransferringAssignment(null)}
+          onSuccess={handleTransferSuccess}
         />
       )}
     </div>

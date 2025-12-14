@@ -132,6 +132,11 @@ router.get('/assignments', (req, res) => {
         aa.employee_id_number as employee_id,
         aa.email,
         aa.office_college,
+        aa.transfer_status,
+        aa.transferred_from_id,
+        aa.transferred_to_id,
+        aa.transfer_date,
+        aa.transfer_reason,
         GROUP_CONCAT(a.asset_code) as asset_codes
       FROM asset_assignments aa
       LEFT JOIN assignment_items ai ON aa.id = ai.assignment_id
@@ -633,6 +638,246 @@ router.put('/assignments/:id/assets', handoverValidation.updateAssets, async (re
     });
   } catch (error) {
     console.error('Error editing assignment assets:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Transfer assets from a signed assignment to a new employee
+router.post('/transfer/:id', handoverValidation.transfer, async (req, res) => {
+  try {
+    const originalAssignmentId = req.params.id;
+    const {
+      new_employee_name,
+      new_employee_id,
+      new_email,
+      new_office_college,
+      new_backup_email,
+      asset_ids,
+      transfer_reason,
+      notify_original_employee
+    } = req.body;
+
+    // Get original assignment
+    const originalAssignment = db.prepare(`
+      SELECT * FROM asset_assignments WHERE id = ?
+    `).get(originalAssignmentId);
+
+    if (!originalAssignment) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    // Validate: must be signed
+    if (!originalAssignment.is_signed) {
+      return res.status(400).json({
+        error: 'Can only transfer assets from signed assignments'
+      });
+    }
+
+    // Validate: must not be disputed
+    if (originalAssignment.is_disputed) {
+      return res.status(400).json({
+        error: 'Cannot transfer assets from disputed assignments'
+      });
+    }
+
+    // Validate: must not already be transferred out
+    if (originalAssignment.transfer_status === 'transferred_out') {
+      return res.status(400).json({
+        error: 'This assignment has already been transferred'
+      });
+    }
+
+    // Validate: new email must be different from original
+    if (new_email.toLowerCase() === originalAssignment.email.toLowerCase()) {
+      return res.status(400).json({
+        error: 'New employee email must be different from original employee'
+      });
+    }
+
+    // Get original assignment assets
+    const originalAssets = db.prepare(`
+      SELECT a.id FROM assets a
+      JOIN assignment_items ai ON a.id = ai.asset_id
+      WHERE ai.assignment_id = ?
+    `).all(originalAssignmentId);
+
+    const originalAssetIds = originalAssets.map(a => a.id);
+
+    // Validate: requested assets must belong to original assignment
+    const invalidAssets = asset_ids.filter(id => !originalAssetIds.includes(id));
+    if (invalidAssets.length > 0) {
+      return res.status(400).json({
+        error: `Assets with IDs [${invalidAssets.join(', ')}] do not belong to this assignment`
+      });
+    }
+
+    // Get full asset details for transfer
+    const transferredAssets = db.prepare(`
+      SELECT * FROM assets WHERE id IN (${asset_ids.map(() => '?').join(',')})
+    `).all(...asset_ids);
+
+    // Calculate remaining assets
+    const remainingAssetIds = originalAssetIds.filter(id => !asset_ids.includes(id));
+
+    // Generate new signature token
+    const signatureToken = nanoid(32);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+    const now = new Date();
+
+    // Check/create employee record for new employee
+    let newEmployeeRecord = db.prepare('SELECT * FROM employees WHERE email = ?').get(new_email);
+    if (!newEmployeeRecord) {
+      const insertEmployee = db.prepare(`
+        INSERT INTO employees (employee_name, employee_id, email, office_college)
+        VALUES (?, ?, ?, ?)
+      `);
+      const result = insertEmployee.run(new_employee_name, new_employee_id, new_email, new_office_college || null);
+      newEmployeeRecord = db.prepare('SELECT * FROM employees WHERE id = ?').get(result.lastInsertRowid);
+    }
+
+    // Create new assignment for recipient
+    const insertNewAssignment = db.prepare(`
+      INSERT INTO asset_assignments (
+        employee_id,
+        employee_name,
+        employee_id_number,
+        email,
+        office_college,
+        backup_email,
+        signature_token,
+        token_expires_at,
+        is_signed,
+        transfer_status,
+        transferred_from_id,
+        transfer_date,
+        transfer_reason
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'transferred_in', ?, ?, ?)
+    `);
+
+    const newAssignmentResult = insertNewAssignment.run(
+      newEmployeeRecord.id,
+      new_employee_name,
+      new_employee_id,
+      new_email,
+      new_office_college || null,
+      new_backup_email || null,
+      signatureToken,
+      expiresAt.toISOString(),
+      originalAssignmentId,
+      now.toISOString(),
+      transfer_reason
+    );
+    const newAssignmentId = newAssignmentResult.lastInsertRowid;
+
+    // Insert assignment items for new assignment
+    const insertAssignmentItem = db.prepare(`
+      INSERT INTO assignment_items (assignment_id, asset_id)
+      VALUES (?, ?)
+    `);
+
+    for (const assetId of asset_ids) {
+      insertAssignmentItem.run(newAssignmentId, assetId);
+    }
+
+    // Remove transferred assets from original assignment
+    if (remainingAssetIds.length > 0) {
+      // Partial transfer: remove only transferred assets
+      const deleteTransferredItems = db.prepare(`
+        DELETE FROM assignment_items
+        WHERE assignment_id = ? AND asset_id IN (${asset_ids.map(() => '?').join(',')})
+      `);
+      deleteTransferredItems.run(originalAssignmentId, ...asset_ids);
+    } else {
+      // Full transfer: all assets transferred
+      const deleteAllItems = db.prepare(`
+        DELETE FROM assignment_items WHERE assignment_id = ?
+      `);
+      deleteAllItems.run(originalAssignmentId);
+    }
+
+    // Update original assignment with transfer status
+    const updateOriginal = db.prepare(`
+      UPDATE asset_assignments
+      SET
+        transfer_status = 'transferred_out',
+        transferred_to_id = ?,
+        transfer_date = ?,
+        transfer_reason = ?
+      WHERE id = ?
+    `);
+    updateOriginal.run(newAssignmentId, now.toISOString(), transfer_reason, originalAssignmentId);
+
+    // Generate signing URL
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const signingUrl = `${baseUrl}/sign/${signatureToken}`;
+
+    // Send signing email to new employee
+    await sendHandoverEmail({
+      email: new_email,
+      employeeName: new_employee_name,
+      signingUrl: signingUrl,
+      expiresAt: expiresAt,
+      assetCount: transferredAssets.length,
+      originalEmployeeName: originalAssignment.employee_name,
+      isTransfer: true
+    });
+
+    // Send to backup email if provided
+    if (new_backup_email) {
+      await sendHandoverEmail({
+        email: new_backup_email,
+        employeeName: new_employee_name,
+        employeeId: new_employee_id,
+        primaryEmail: new_email,
+        signingUrl: signingUrl,
+        expiresAt: expiresAt,
+        assetCount: transferredAssets.length,
+        isPrimary: false
+      });
+    }
+
+    // Send notification to original employee if requested
+    if (notify_original_employee) {
+      await sendHandoverEmail({
+        email: originalAssignment.email,
+        employeeName: originalAssignment.employee_name,
+        assetCount: transferredAssets.length,
+        assets: transferredAssets,
+        transferReason: transfer_reason,
+        isTransferNotification: true
+      });
+    }
+
+    // Send admin notification if configured
+    if (process.env.ADMIN_EMAIL) {
+      await sendHandoverEmail({
+        email: process.env.ADMIN_EMAIL,
+        employeeName: new_employee_name,
+        employeeId: new_employee_id,
+        officeCollege: new_office_college,
+        assetCount: transferredAssets.length,
+        assets: transferredAssets,
+        originalEmployeeName: originalAssignment.employee_name,
+        originalEmail: originalAssignment.email,
+        transferReason: transfer_reason,
+        isTransfer: true,
+        isAdminCopy: true
+      });
+    }
+
+    res.status(201).json({
+      message: 'Assets transferred successfully',
+      original_assignment_id: parseInt(originalAssignmentId),
+      new_assignment_id: newAssignmentId,
+      signing_url: signingUrl,
+      expires_at: expiresAt.toISOString(),
+      transferred_asset_count: transferredAssets.length,
+      remaining_asset_count: remainingAssetIds.length
+    });
+  } catch (error) {
+    console.error('Error transferring assets:', error);
     res.status(500).json({ error: error.message });
   }
 });

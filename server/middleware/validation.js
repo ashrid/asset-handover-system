@@ -315,6 +315,53 @@ export const handoverValidation = {
   resend: [
     commonValidators.idParam,
     handleValidationErrors
+  ],
+
+  transfer: [
+    commonValidators.idParam,
+
+    body('new_employee_name')
+      .notEmpty().withMessage('New employee name is required')
+      .trim()
+      .isLength({ min: 2, max: 200 }).withMessage('Employee name must be between 2 and 200 characters'),
+
+    body('new_employee_id')
+      .notEmpty().withMessage('New employee ID is required')
+      .trim()
+      .isLength({ min: 1, max: 50 }).withMessage('Employee ID must be between 1 and 50 characters'),
+
+    body('new_email')
+      .notEmpty().withMessage('New employee email is required')
+      .isEmail().withMessage('Invalid email address')
+      .normalizeEmail()
+      .isLength({ max: 255 }).withMessage('Email must be less than 255 characters'),
+
+    commonValidators.optionalEmail('new_backup_email'),
+
+    body('new_office_college')
+      .optional()
+      .trim()
+      .isLength({ max: 200 }).withMessage('Office/College must be less than 200 characters'),
+
+    body('asset_ids')
+      .isArray({ min: 1 }).withMessage('At least one asset must be selected for transfer')
+      .custom((value) => {
+        if (!value.every(id => Number.isInteger(id) && id > 0)) {
+          throw new Error('All asset IDs must be positive integers');
+        }
+        return true;
+      }),
+
+    body('transfer_reason')
+      .notEmpty().withMessage('Transfer reason is required')
+      .trim()
+      .isLength({ min: 5, max: 500 }).withMessage('Transfer reason must be between 5 and 500 characters'),
+
+    body('notify_original_employee')
+      .optional()
+      .isBoolean().withMessage('notify_original_employee must be a boolean'),
+
+    handleValidationErrors
   ]
 };
 
