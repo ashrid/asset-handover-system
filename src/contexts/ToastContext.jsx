@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import Toast from '../components/Toast';
 
 const ToastContext = createContext();
 
@@ -43,6 +44,7 @@ export const ToastProvider = ({ children }) => {
             type={toast.type}
             message={toast.message}
             duration={toast.duration}
+            onRemove={removeToast}
           />
         ))}
       </div>

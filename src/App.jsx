@@ -10,7 +10,7 @@ import Dashboard from './pages/Dashboard'
 import { initializeTheme } from './themes'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('assets')
+  const [currentPage, setCurrentPage] = useState('dashboard')
   const location = useLocation()
 
   useEffect(() => {
@@ -27,7 +27,7 @@ function App() {
         {!isPublicPage && <Header currentPage={currentPage} setCurrentPage={setCurrentPage} />}
         <main className={isPublicPage ? '' : 'container mx-auto px-4 py-8 max-w-7xl'}>
           <Routes>
-            <Route path="/" element={<Navigate to="/assets" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/assets" element={<AssetsPage />} />
             <Route path="/handover" element={<HandoverPage />} />
             <Route path="/assignments" element={<AssignmentsPage />} />

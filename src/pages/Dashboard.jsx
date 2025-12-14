@@ -163,7 +163,7 @@ const Dashboard = () => {
                     <ul className="divide-y divide-border">
                         {activity.recentSignatures.map(item => (
                             <li key={item.id} className="py-2">
-                                {item.employee_name} signed on {new Date(item.signature_date).toLocaleDateString()}
+                                <span className="font-semibold" style={{ color: 'var(--theme-primary)' }}>{item.employee_name}</span> signed on {new Date(item.signature_date).toLocaleDateString()}
                             </li>
                         ))}
                     </ul>
@@ -173,7 +173,7 @@ const Dashboard = () => {
                     <ul className="divide-y divide-border">
                         {activity.recentAssignments.map(item => (
                             <li key={item.id} className="py-2">
-                                Assigned to {item.employee_name} on {new Date(item.assigned_at).toLocaleDateString()}
+                                Assigned to <span className="font-semibold" style={{ color: 'var(--theme-primary)' }}>{item.employee_name}</span> on {new Date(item.assigned_at).toLocaleDateString()}
                             </li>
                         ))}
                     </ul>
@@ -183,7 +183,7 @@ const Dashboard = () => {
                     <ul className="divide-y divide-border">
                         {activity.recentDisputes.map(item => (
                             <li key={item.id} className="py-2">
-                                {item.employee_name} disputed an assignment
+                                <span className="font-semibold" style={{ color: 'var(--theme-primary)' }}>{item.employee_name}</span> disputed an assignment
                             </li>
                         ))}
                     </ul>

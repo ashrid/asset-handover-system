@@ -1,8 +1,8 @@
 # Project Roadmap
 
 **Project:** Asset Handover Management System - Ajman University
-**Last Updated:** 2025-12-04
-**Current Phase:** Phase 4 Complete (4.1 & 4.2) ✅
+**Last Updated:** 2025-12-09
+**Current Phase:** Phase 4.5 Planned (Asset Transfer Feature)
 
 ---
 
@@ -473,6 +473,117 @@ TZ=Asia/Dubai
 
 ---
 
+## 🚀 Phase 4.5: Asset Transfer Feature
+
+**Status:** 📋 Planned
+**Priority:** High
+**Estimated Duration:** 1 week
+
+### Overview
+Enable admins to transfer assets from one employee to another without creating a completely new assignment. Useful when employees leave, change departments, or assets need reassignment.
+
+### Use Cases
+1. **Employee Departure**: Transfer all assets to replacement employee
+2. **Department Change**: Transfer assets to new department contact
+3. **Asset Reallocation**: Move specific assets between employees
+4. **Temporary Assignment**: Transfer assets during leave/vacation
+
+### Features to Implement
+
+#### 4.5.1 Transfer Initiation
+- [ ] "Transfer" button on signed assignments
+- [ ] Transfer modal with:
+  - Source employee info (read-only)
+  - Asset selection (transfer all or specific)
+  - New employee selection (search/dropdown)
+  - Optional new backup email
+  - Transfer reason field
+  - Send notification checkboxes
+
+#### 4.5.2 Transfer Workflow
+- [ ] Create new assignment for receiving employee
+- [ ] Mark original assignment as "Transferred"
+- [ ] Link original and new assignments
+- [ ] Generate new signing token for recipient
+- [ ] Send signing email to new employee
+- [ ] Optional: Send notification to original employee
+
+#### 4.5.3 Transfer Tracking
+- [ ] "Transferred" status badge in assignments list
+- [ ] Transfer history in assignment details modal
+- [ ] Link to view original/new assignment
+- [ ] Transfer date and reason display
+- [ ] Filter by transfer status
+
+#### 4.5.4 Transfer Notifications
+- [ ] Email to new employee with signing link
+- [ ] Optional email to original employee
+- [ ] Admin notification on transfer completion
+- [ ] Include transfer reason in emails
+
+### Database Changes
+```sql
+-- Add transfer tracking columns
+ALTER TABLE asset_assignments ADD COLUMN transfer_status TEXT;
+-- Values: NULL (normal), 'transferred_out', 'transferred_in'
+
+ALTER TABLE asset_assignments ADD COLUMN transferred_from_id INTEGER;
+ALTER TABLE asset_assignments ADD COLUMN transferred_to_id INTEGER;
+ALTER TABLE asset_assignments ADD COLUMN transfer_date TEXT;
+ALTER TABLE asset_assignments ADD COLUMN transfer_reason TEXT;
+
+-- Foreign key references to same table
+-- transferred_from_id -> original assignment (for incoming transfers)
+-- transferred_to_id -> new assignment (for outgoing transfers)
+```
+
+### API Endpoints
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/handover/transfer/:id` | Initiate asset transfer |
+| GET | `/api/handover/transfers` | Get transfer history |
+
+### Request Body (Transfer)
+```json
+{
+  "new_employee_name": "Jane Smith",
+  "new_employee_id": "EMP456",
+  "new_email": "jane.smith@ajman.ac.ae",
+  "new_office_college": "College of Engineering",
+  "new_backup_email": "dept.head@ajman.ac.ae",
+  "asset_ids": [1, 2, 3],
+  "transfer_reason": "Employee resignation",
+  "notify_original_employee": true
+}
+```
+
+### Validation Rules
+- Can only transfer signed assignments
+- Cannot transfer disputed assignments
+- Cannot transfer already transferred assignments
+- At least one asset must be selected
+- New employee email must be different from original
+
+### Files to Create/Modify
+- `server/migrations/005_add_transfer_fields.js` - Database migration
+- `server/routes/handover.js` - Transfer endpoint
+- `src/components/TransferModal.jsx` - Transfer UI component
+- `src/pages/AssignmentsPage.jsx` - Transfer button integration
+- `server/services/emailService.js` - Transfer email templates
+
+### Testing Checklist
+- [ ] Can initiate transfer from signed assignment
+- [ ] Cannot transfer unsigned assignments
+- [ ] Cannot transfer disputed assignments
+- [ ] New assignment created correctly
+- [ ] Original marked as transferred
+- [ ] Signing email sent to new employee
+- [ ] Transfer history displays correctly
+- [ ] Filter by transfer status works
+- [ ] Transfer links navigate correctly
+
+---
+
 ## 🎯 Phase 5: Advanced Features (Future)
 
 **Status:** 💡 Planned
@@ -597,6 +708,9 @@ TZ=Asia/Dubai
 - ✅ Dashboard & Analytics
 - ✅ Mobile Experience Improvements
 - ✅ UI Polish (Skeletons, Toasts, Transitions)
+
+### Next Up (Phase 4.5)
+- 📋 Asset Transfer Feature
 
 ### Pending Features (Phase 5)
 - ⏳ User Authentication
@@ -896,4 +1010,4 @@ npm run playwright:install  # Install browser
 
 ---
 
-**Next Actions:** Begin Phase 5 planning (User Authentication & Authorization).
+**Next Actions:** Implement Phase 4.5 (Asset Transfer Feature), then begin Phase 5 planning.

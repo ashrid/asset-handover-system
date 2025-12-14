@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useToast } from '../contexts/ToastContext';
 
-const Toast = ({ id, type, message, duration = 5000 }) => {
-  const { removeToast } = useToast();
+const Toast = ({ id, type, message, duration = 5000, onRemove }) => {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -11,14 +9,14 @@ const Toast = ({ id, type, message, duration = 5000 }) => {
     }, duration - 500);
 
     const dismissTimer = setTimeout(() => {
-      removeToast(id);
+      onRemove(id);
     }, duration);
 
     return () => {
       clearTimeout(timer);
       clearTimeout(dismissTimer);
     };
-  }, [id, duration, removeToast]);
+  }, [id, duration, onRemove]);
 
   const getIcon = () => {
     switch (type) {
@@ -49,7 +47,7 @@ const Toast = ({ id, type, message, duration = 5000 }) => {
           <p className="font-medium truncate">{message}</p>
         </div>
         <button
-          onClick={() => removeToast(id)}
+          onClick={() => onRemove(id)}
           className="ml-2 text-lg leading-none opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
           aria-label="Dismiss"
         >

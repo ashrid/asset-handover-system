@@ -27,8 +27,8 @@ function Header({ currentPage, setCurrentPage }) {
   const isActive = (path) => location.pathname === path;
 
   const navItems = [
-    { path: '/assets', label: 'Manage Assets', icon: 'fa-box' },
     { path: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
+    { path: '/assets', label: 'Manage Assets', icon: 'fa-box' },
     { path: '/handover', label: 'Asset Handover', icon: 'fa-handshake' },
     { path: '/assignments', label: 'View Assignments', icon: 'fa-list-alt' },
   ];
