@@ -78,14 +78,20 @@ export const logDatabaseQuery = (query, duration, rowCount) => {
 };
 
 export const logEmailSent = (type, recipient, success, error = null) => {
-  const logFn = success ? logger.info : logger.error;
-  logFn({
+  const logData = {
     type: 'email',
     emailType: type,
     recipient: recipient ? recipient.replace(/(.{2}).*(@.*)/, '$1***$2') : 'unknown', // Mask email
     success,
     error: error?.message
-  }, success ? 'Email sent successfully' : 'Email sending failed');
+  };
+  const message = success ? 'Email sent successfully' : 'Email sending failed';
+
+  if (success) {
+    logger.info(logData, message);
+  } else {
+    logger.error(logData, message);
+  }
 };
 
 export const logReminderService = (action, details = {}) => {
