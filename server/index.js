@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { initDatabase } from './database.js';
 import assetsRouter from './routes/assets.js';
 import employeesRouter from './routes/employees.js';
@@ -7,6 +8,8 @@ import handoverRouter from './routes/handover.js';
 import locationsRouter from './routes/locations.js';
 import dashboardRouter from './routes/dashboard.js';
 import healthRouter from './routes/health.js';
+import authRouter from './routes/auth.js';
+import usersRouter from './routes/users.js';
 import { startReminderService, triggerManualReminder } from './services/reminderService.js';
 import logger from './services/logger.js';
 import { initSentry, setupSentryErrorHandler } from './services/sentry.js';
@@ -26,8 +29,14 @@ app.use(securityHeaders);
 app.use(additionalSecurityHeaders);
 
 // Core middleware
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin: process.env.NODE_ENV === 'production'
+    ? process.env.ALLOWED_ORIGINS?.split(',') || true
+    : true
+}));
 app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
 
 // CSRF-like protection for API
 app.use(validateContentType);
@@ -55,6 +64,12 @@ try {
 
 // Health check routes (no auth needed)
 app.use('/api/health', healthRouter);
+
+// Auth routes (public endpoints for login)
+app.use('/api/auth', authRouter);
+
+// User management routes (admin only)
+app.use('/api/users', usersRouter);
 
 // API Routes
 app.use('/api/assets', assetsRouter);

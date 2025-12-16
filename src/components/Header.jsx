@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ThemeSwitcher from './ThemeSwitcher';
+import { useAuth } from '../contexts/AuthContext';
 
 function Header({ currentPage, setCurrentPage }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAdmin, isStaff, logout } = useAuth();
 
   // Handle scroll to minimize header on desktop
   useEffect(() => {
@@ -18,20 +21,49 @@ function Header({ currentPage, setCurrentPage }) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isUserMenuOpen && !event.target.closest('.user-menu-container')) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isUserMenuOpen]);
+
   const handleNavigation = (page, path) => {
     setCurrentPage(page);
     navigate(path);
     setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setIsUserMenuOpen(false);
+    navigate('/login');
   };
 
   const isActive = (path) => location.pathname === path;
 
+  // Build nav items based on user role
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line' },
-    { path: '/assets', label: 'Manage Assets', icon: 'fa-box' },
-    { path: '/handover', label: 'Asset Handover', icon: 'fa-handshake' },
-    { path: '/assignments', label: 'View Assignments', icon: 'fa-list-alt' },
-  ];
+    { path: '/dashboard', label: 'Dashboard', icon: 'fa-chart-line', roles: ['admin', 'staff', 'viewer'] },
+    { path: '/assets', label: 'Manage Assets', icon: 'fa-box', roles: ['admin', 'staff'] },
+    { path: '/handover', label: 'Asset Handover', icon: 'fa-handshake', roles: ['admin', 'staff'] },
+    { path: '/assignments', label: 'View Assignments', icon: 'fa-list-alt', roles: ['admin', 'staff', 'viewer'] },
+    { path: '/users', label: 'User Management', icon: 'fa-users-cog', roles: ['admin'] },
+  ].filter(item => item.roles.includes(user?.role));
+
+  const getRoleBadgeColor = (role) => {
+    switch (role) {
+      case 'admin': return 'bg-red-100 text-red-700 border-red-200';
+      case 'staff': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'viewer': return 'bg-gray-100 text-gray-700 border-gray-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+    }
+  };
 
   return (
     <header className={`header-premium sticky top-0 z-40 mb-4 md:mb-8 animate-fadeIn transition-all duration-300 ${isScrolled ? 'header-minimized' : ''}`}>
@@ -88,6 +120,39 @@ function Header({ currentPage, setCurrentPage }) {
                 </button>
               ))}
               <ThemeSwitcher compact />
+              {/* User Menu - Compact */}
+              <div className="relative user-menu-container ml-2">
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-secondary hover:bg-surface-tertiary transition-colors"
+                >
+                  <i className="fas fa-user-circle text-primary"></i>
+                  <span className="text-sm font-medium text-text-primary max-w-[100px] truncate">
+                    {user?.name?.split(' ')[0] || 'User'}
+                  </span>
+                  <i className={`fas fa-chevron-down text-xs text-text-secondary transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}></i>
+                </button>
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-fadeIn">
+                    <div className="p-3 border-b border-border bg-surface-secondary">
+                      <p className="font-medium text-text-primary truncate">{user?.name}</p>
+                      <p className="text-xs text-text-secondary truncate">{user?.email}</p>
+                      <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full border ${getRoleBadgeColor(user?.role)}`}>
+                        {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                      </span>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                      >
+                        <i className="fas fa-sign-out-alt"></i>
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </nav>
           )}
         </div>
@@ -106,6 +171,38 @@ function Header({ currentPage, setCurrentPage }) {
               </button>
             ))}
             <ThemeSwitcher />
+            {/* User Menu - Full */}
+            <div className="relative user-menu-container">
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="nav-button flex items-center gap-2"
+              >
+                <i className="fas fa-user-circle"></i>
+                <span className="max-w-[120px] truncate">{user?.name?.split(' ')[0] || 'User'}</span>
+                <i className={`fas fa-chevron-down text-xs transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}></i>
+              </button>
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-fadeIn">
+                  <div className="p-4 border-b border-border bg-surface-secondary">
+                    <p className="font-semibold text-text-primary truncate">{user?.name}</p>
+                    <p className="text-sm text-text-secondary truncate">{user?.email}</p>
+                    <p className="text-xs text-text-secondary mt-1">ID: {user?.employeeId}</p>
+                    <span className={`inline-block mt-2 px-2.5 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(user?.role)}`}>
+                      {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+                    </span>
+                  </div>
+                  <div className="py-2">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                    >
+                      <i className="fas fa-sign-out-alt w-5 text-center"></i>
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
         )}
       </div>
@@ -114,6 +211,20 @@ function Header({ currentPage, setCurrentPage }) {
       {isMenuOpen && (
         <div className="lg:hidden animate-fadeIn" id="mobile-menu">
           <nav className="px-2 pt-2 pb-4 space-y-2 sm:px-3">
+            {/* User Info Card - Mobile */}
+            <div className="card p-3 mb-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <i className="fas fa-user text-primary"></i>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-text-primary truncate">{user?.name}</p>
+                <p className="text-xs text-text-secondary truncate">{user?.email}</p>
+              </div>
+              <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getRoleBadgeColor(user?.role)}`}>
+                {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
+              </span>
+            </div>
+
             {navItems.map((item) => (
               <button
                 key={item.path}
@@ -124,8 +235,16 @@ function Header({ currentPage, setCurrentPage }) {
                 <span>{item.label}</span>
               </button>
             ))}
-            <div className="flex justify-center pt-4">
+
+            <div className="flex items-center justify-between pt-4 border-t border-border mt-4">
               <ThemeSwitcher />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <i className="fas fa-sign-out-alt"></i>
+                Sign Out
+              </button>
             </div>
           </nav>
         </div>

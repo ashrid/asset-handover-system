@@ -475,3 +475,76 @@ export async function sendHandoverEmail({ email, employeeName, employeeId, prima
     throw error;
   }
 }
+
+/**
+ * Send OTP email for login authentication
+ */
+export async function sendOTPEmail({ email, employeeName, otpCode, expiresAt }) {
+  try {
+    const transporter = await getTransporter();
+
+    // Format expiry time
+    const expiryTime = expiresAt ? (() => {
+      const date = new Date(expiresAt);
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    })() : '';
+
+    const subject = 'Your Login Code - Ajman University Asset Management';
+
+    const textContent = `Dear ${employeeName},\n\n` +
+      `Your one-time login code is: ${otpCode}\n\n` +
+      `This code will expire at ${expiryTime} (valid for 10 minutes).\n\n` +
+      `If you did not request this code, please ignore this email.\n\n` +
+      `Best regards,\nAjman University Asset Management System`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #0969da; padding: 30px; border-radius: 10px 10px 0 0;">
+          <h2 style="color: white; margin: 0; font-size: 24px;">Login Verification Code</h2>
+        </div>
+        <div style="background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px;">
+          <p style="font-size: 16px; color: #333;">Dear ${employeeName},</p>
+          <p style="font-size: 16px; color: #333;">Your one-time login code is:</p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="display: inline-block; padding: 20px 40px; background: white; border: 2px solid #0969da; border-radius: 10px;">
+              <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0969da;">${otpCode}</span>
+            </div>
+          </div>
+
+          <div style="margin: 20px 0; padding: 15px; background: white; border-left: 4px solid #ffc107; border-radius: 5px;">
+            <p style="margin: 0; color: #856404; font-size: 14px;">
+              <strong>Expires at ${expiryTime}</strong> (valid for 10 minutes)
+            </p>
+          </div>
+
+          <p style="font-size: 14px; color: #666;">If you did not request this code, please ignore this email.</p>
+          <p style="font-size: 14px; color: #666; margin-top: 30px;">Best regards,<br>
+          <strong style="color: #333;">Ajman University Asset Management System</strong></p>
+        </div>
+      </div>
+    `;
+
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_FROM || '"Ajman University Asset Management" <assets@ajman.ac.ae>',
+      to: email,
+      subject,
+      text: textContent,
+      html: htmlContent
+    });
+
+    logEmailSent('otp', email, true);
+
+    // For development, log the preview URL
+    if (!process.env.SMTP_HOST) {
+      logger.debug({ previewUrl: nodemailer.getTestMessageUrl(info) }, 'OTP email preview available');
+    }
+
+    return info;
+  } catch (error) {
+    logEmailSent('otp', email, false, error);
+    throw error;
+  }
+}

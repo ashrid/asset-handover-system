@@ -365,10 +365,81 @@ export const handoverValidation = {
   ]
 };
 
+/**
+ * Auth validation schemas
+ */
+export const authValidation = {
+  requestOTP: [
+    body('employee_id')
+      .notEmpty().withMessage('Employee ID is required')
+      .trim()
+      .isLength({ min: 1, max: 50 }).withMessage('Employee ID must be between 1 and 50 characters'),
+
+    handleValidationErrors
+  ],
+
+  verifyOTP: [
+    body('employee_id')
+      .notEmpty().withMessage('Employee ID is required')
+      .trim()
+      .isLength({ min: 1, max: 50 }).withMessage('Employee ID must be between 1 and 50 characters'),
+
+    body('otp_code')
+      .notEmpty().withMessage('OTP code is required')
+      .isLength({ min: 6, max: 6 }).withMessage('OTP must be exactly 6 digits')
+      .matches(/^\d{6}$/).withMessage('OTP must contain only numbers'),
+
+    handleValidationErrors
+  ]
+};
+
+/**
+ * User management validation schemas
+ */
+export const userValidation = {
+  getUser: [
+    commonValidators.idParam,
+    handleValidationErrors
+  ],
+
+  createUser: [
+    body('employee_id')
+      .notEmpty().withMessage('Employee ID is required')
+      .isInt({ min: 1 }).withMessage('Employee ID must be a positive integer'),
+
+    body('role')
+      .notEmpty().withMessage('Role is required')
+      .isIn(['admin', 'staff', 'viewer']).withMessage('Invalid role. Must be admin, staff, or viewer'),
+
+    handleValidationErrors
+  ],
+
+  updateUser: [
+    commonValidators.idParam,
+
+    body('role')
+      .optional()
+      .isIn(['admin', 'staff', 'viewer']).withMessage('Invalid role. Must be admin, staff, or viewer'),
+
+    body('is_active')
+      .optional()
+      .isBoolean().withMessage('is_active must be a boolean'),
+
+    handleValidationErrors
+  ],
+
+  deleteUser: [
+    commonValidators.idParam,
+    handleValidationErrors
+  ]
+};
+
 export default {
   handleValidationErrors,
   commonValidators,
   assetValidation,
   employeeValidation,
-  handoverValidation
+  handoverValidation,
+  authValidation,
+  userValidation
 };
