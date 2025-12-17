@@ -1,8 +1,8 @@
 # Project Roadmap
 
 **Project:** Asset Handover Management System - Ajman University
-**Last Updated:** 2025-12-14
-**Current Phase:** Phase 4.5 Complete (Asset Transfer Feature)
+**Last Updated:** 2025-12-17
+**Current Phase:** Phase 5.1 Complete (OTP-Based Authentication)
 
 ---
 
@@ -582,37 +582,188 @@ ALTER TABLE asset_assignments ADD COLUMN transfer_reason TEXT;
 
 ---
 
-## 🎯 Phase 5: Advanced Features (Future)
+## ✅ Phase 5.1: OTP-Based Authentication System (Complete)
 
-**Status:** 💡 Planned
-**Priority:** Low
-**Estimated Duration:** 4-6 weeks
-
-### 5.1 User Authentication & Authorization
+**Status:** ✅ Complete
 **Priority:** High
-**Time:** 1 week
+**Completion Date:** 2025-12-17
 
-**Features:**
-- [ ] Login system with email/password
-- [ ] Admin and regular user roles
-- [ ] Permission-based access control
-- [ ] Session management
-- [ ] Password reset functionality
-- [ ] User profile management
+### Overview
+Implement Employee ID + OTP authentication with JWT + Refresh Tokens and role-based access control (Admin, Staff, Viewer).
 
-**Database Changes:**
-- [ ] `users` table
-- [ ] `roles` and `permissions` tables
-- [ ] Session storage
+### Features Implemented
 
-**Tech Stack:**
-- [ ] JWT or session-based auth
-- [ ] bcrypt for password hashing
-- [ ] Email verification service
+#### 5.1.1 OTP-Based Login ✅
+- ✅ Login via Employee ID (linked to existing employees table)
+- ✅ 6-digit OTP sent to employee email
+- ✅ OTP expires in 10 minutes, single-use
+- ✅ Rate limiting (20 requests in dev, 5 in prod per 15 min)
+- ✅ Two-step login UI (Employee ID → OTP verification)
+
+#### 5.1.2 JWT + Refresh Token System ✅
+- ✅ Access tokens (15 min expiry, stored in memory)
+- ✅ Refresh tokens (7 day expiry, httpOnly cookie)
+- ✅ Automatic token refresh on 401 responses
+- ✅ Token revocation on logout
+- ✅ Logout from all devices support
+
+#### 5.1.3 Role-Based Access Control ✅
+- ✅ Three roles: Admin, Staff, Viewer
+- ✅ Role-based route protection (frontend)
+- ✅ Role-based API middleware (backend)
+- ✅ Permission matrix:
+  | Feature | Admin | Staff | Viewer |
+  |---------|-------|-------|--------|
+  | View Dashboard | ✅ | ✅ | ✅ |
+  | View Assignments | ✅ | ✅ | ✅ |
+  | Manage Assets | ✅ | ✅ | ❌ |
+  | Create Handovers | ✅ | ✅ | ❌ |
+  | Manage Users | ✅ | ❌ | ❌ |
+
+#### 5.1.4 User Management (Admin Only) ✅
+- ✅ List all users with search
+- ✅ Create users by linking existing employees
+- ✅ Update user roles
+- ✅ Activate/deactivate users
+- ✅ View available (unlinked) employees
+
+### Database Changes (Migration 006)
+```sql
+-- Users table (links to employees)
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY,
+  employee_id INTEGER NOT NULL UNIQUE,
+  role TEXT NOT NULL CHECK(role IN ('admin', 'staff', 'viewer')),
+  is_active INTEGER DEFAULT 1,
+  created_at TEXT, created_by INTEGER, updated_at TEXT, last_login_at TEXT
+);
+
+-- OTP codes table
+CREATE TABLE otp_codes (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  code TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used INTEGER DEFAULT 0, created_at TEXT, ip_address TEXT
+);
+
+-- Refresh tokens table
+CREATE TABLE refresh_tokens (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  revoked INTEGER DEFAULT 0, created_at TEXT
+);
+
+-- Rate limiting table
+CREATE TABLE otp_rate_limits (
+  id INTEGER PRIMARY KEY,
+  identifier TEXT NOT NULL UNIQUE,
+  request_count INTEGER DEFAULT 1,
+  window_start TEXT NOT NULL
+);
+```
+
+### API Endpoints
+
+#### Auth Routes (`/api/auth`)
+| Method | Endpoint | Purpose | Auth |
+|--------|----------|---------|------|
+| POST | `/request-otp` | Send OTP to employee email | Public |
+| POST | `/verify-otp` | Verify OTP, issue tokens | Public |
+| POST | `/refresh` | Refresh access token | Cookie |
+| POST | `/logout` | Revoke refresh token | Required |
+| POST | `/logout-all` | Revoke all user tokens | Required |
+| GET | `/me` | Get current user info | Required |
+
+#### User Management Routes (`/api/users`) - Admin Only
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/` | List all users |
+| GET | `/:id` | Get single user |
+| POST | `/` | Create user (link employee) |
+| PUT | `/:id` | Update user role/status |
+| DELETE | `/:id` | Deactivate user |
+| GET | `/available/employees` | Get unlinked employees |
+| PUT | `/:id/reactivate` | Reactivate user |
+
+### Files Created
+
+#### Backend
+| File | Purpose |
+|------|---------|
+| `server/migrations/006_add_auth_tables.js` | Database migration |
+| `server/services/otpService.js` | OTP generation, validation, rate limiting |
+| `server/services/tokenService.js` | JWT + refresh token management |
+| `server/middleware/auth.js` | `authenticateToken`, `requireRole` middleware |
+| `server/routes/auth.js` | Auth endpoints |
+| `server/routes/users.js` | User management endpoints |
+| `server/seeds/createAdmin.js` | Seed script for initial admin |
+
+#### Frontend
+| File | Purpose |
+|------|---------|
+| `src/contexts/AuthContext.jsx` | Auth state, `useAuth` hook, `authFetch` helper |
+| `src/components/ProtectedRoute.jsx` | Route protection wrapper |
+| `src/pages/LoginPage.jsx` | Two-step login (Employee ID → OTP) |
+| `src/pages/UserManagementPage.jsx` | Admin user CRUD |
+
+### Files Modified
+- `server/index.js` - Added cookie-parser, auth/users routes
+- `server/middleware/validation.js` - Added auth validation schemas
+- `server/services/emailService.js` - Added `sendOTPEmail` function
+- `src/App.jsx` - Added AuthProvider, protected routes
+- `src/components/Header.jsx` - Added user menu, role-based navigation
+
+### Environment Variables Added
+```env
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_REFRESH_SECRET=your-refresh-secret-key-change-in-production
+```
+
+### Dependencies Added
+- `jsonwebtoken` - JWT generation and verification
+- `cookie-parser` - Parse cookies for refresh tokens
+
+### Security Features
+- OTP: 6-digit, 10-min expiry, single-use, rate limited
+- Access Token: JWT, 15-min expiry
+- Refresh Token: 7-day expiry, httpOnly cookie, hashed in DB
+- Rate Limiting: Dev-friendly (20 requests) vs Production (5 requests)
+- Token Revocation: Logout revokes token, deactivation revokes all
+
+### Seed Initial Admin
+```bash
+# List available employees
+node server/seeds/createAdmin.js
+
+# Create admin from employee ID
+node server/seeds/createAdmin.js 1
+```
 
 ---
 
-### 5.2 Asset History & Audit Log
+## 🎯 Phase 5: Advanced Features (Continued)
+
+**Status:** 🚧 In Progress
+**Priority:** Medium
+**Estimated Duration:** 3-4 weeks
+
+### 5.2 Protect Existing API Routes
+**Priority:** High
+**Status:** 📋 Planned
+
+**Features:**
+- [ ] Apply `authenticateToken` to assets routes
+- [ ] Apply `authenticateToken` to employees routes
+- [ ] Apply `authenticateToken` to handover routes
+- [ ] Apply `requireRole('admin', 'staff')` where needed
+- [ ] Update frontend to use `authFetch` for all API calls
+
+---
+
+### 5.4 Asset History & Audit Log
 **Priority:** Medium
 **Time:** 1 week
 
@@ -629,7 +780,7 @@ ALTER TABLE asset_assignments ADD COLUMN transfer_reason TEXT;
 
 ---
 
-### 5.3 Advanced Notification System
+### 5.5 Advanced Notification System
 **Priority:** Medium
 **Time:** 1 week
 
@@ -648,7 +799,7 @@ ALTER TABLE asset_assignments ADD COLUMN transfer_reason TEXT;
 
 ---
 
-### 5.4 Multi-Language Support
+### 5.6 Multi-Language Support
 **Priority:** Low
 **Time:** 1-2 weeks
 
@@ -667,7 +818,7 @@ ALTER TABLE asset_assignments ADD COLUMN transfer_reason TEXT;
 
 ---
 
-### 5.5 Advanced Reporting
+### 5.7 Advanced Reporting
 **Priority:** Low
 **Time:** 1 week
 
@@ -690,7 +841,7 @@ ALTER TABLE asset_assignments ADD COLUMN transfer_reason TEXT;
 
 ## 📊 Current Status Summary
 
-### Completed Features (Phases 1-4.5)
+### Completed Features (Phases 1-5.1)
 - ✅ Asset & Employee Management
 - ✅ Excel Bulk Import
 - ✅ Digital Signature Workflow
@@ -707,15 +858,20 @@ ALTER TABLE asset_assignments ADD COLUMN transfer_reason TEXT;
 - ✅ Mobile Experience Improvements
 - ✅ UI Polish (Skeletons, Toasts, Transitions)
 - ✅ Asset Transfer Feature (partial transfers, notifications, tracking)
+- ✅ OTP-Based Authentication (Employee ID + OTP login)
+- ✅ JWT + Refresh Token System
+- ✅ Role-Based Access Control (Admin, Staff, Viewer)
+- ✅ User Management (Admin-only CRUD)
 
-### Next Up (Phase 5)
-- 📋 User Authentication & Authorization
+### Next Up (Phase 5.2)
+- 📋 Protect Existing API Routes with Authentication
 
-### Pending Features (Phase 5)
-- ⏳ User Authentication
-- ⏳ Asset History & Audit Log
-- ⏳ Multi-Language Support
-- ⏳ Advanced Reporting
+### Pending Features (Phase 5+)
+- ⏳ Protect Existing Routes (5.2)
+- ⏳ Asset History & Audit Log (5.4)
+- ⏳ Advanced Notifications (5.5)
+- ⏳ Multi-Language Support (5.6)
+- ⏳ Advanced Reporting (5.7)
 
 ---
 
@@ -933,12 +1089,14 @@ npm run playwright:install  # Install browser
 - [ ] Email deliverability testing
 
 ### Security
-- [ ] Add authentication middleware (Phase 5)
+- [x] Add authentication middleware (Phase 5.1) ✅
 - [x] Implement CSRF protection ✅
 - [x] Add input sanitization/validation ✅
 - [x] Security headers (Helmet) ✅
-- [ ] Rate limiting (deferred)
+- [x] OTP rate limiting ✅
+- [ ] API rate limiting (general)
 - [ ] HTTPS enforcement (deployment)
+- [ ] Protect existing routes with auth (Phase 5.2)
 
 ### Performance
 - [ ] Database indexing optimization
@@ -984,7 +1142,8 @@ npm run playwright:install  # Install browser
 | 3.0.0 | Dec 2025 | 3 | Quick Wins Complete |
 | 4.0.0 | Dec 2025 | 4 | UI Enhancements Complete |
 | 4.5.0 | Dec 2025 | 4.5 | Asset Transfer Feature |
-| 5.0.0 | TBD | 5 | Advanced Features (Planned) |
+| 5.1.0 | Dec 2025 | 5.1 | OTP-Based Authentication |
+| 5.2.0 | TBD | 5.2 | Protect Existing Routes |
 
 ---
 
@@ -1010,4 +1169,4 @@ npm run playwright:install  # Install browser
 
 ---
 
-**Next Actions:** Begin Phase 5 planning (User Authentication & Authorization).
+**Next Actions:** Begin Phase 5.2 - Protect existing API routes with authentication middleware.

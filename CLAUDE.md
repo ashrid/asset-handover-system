@@ -10,14 +10,18 @@ Asset Handover Management System for Ajman University - a full-stack web applica
 
 ### Frontend (React + Vite)
 - **Entry**: `src/main.jsx` → `src/App.jsx`
-- **Routing**: React Router with four main routes:
-  - `/assets` - Asset management
-  - `/handover` - Create new assignments
-  - `/assignments` - View and manage assignments
+- **Routing**: React Router with protected routes:
+  - `/login` - Public login page (Employee ID + OTP)
+  - `/dashboard` - Dashboard (all authenticated users)
+  - `/assets` - Asset management (admin, staff)
+  - `/handover` - Create new assignments (admin, staff)
+  - `/assignments` - View and manage assignments (all authenticated users)
+  - `/users` - User management (admin only)
   - `/sign/:token` - Public signing page (no auth required)
-- **State**: Local component state with fetch API for backend communication
+- **State**: Local component state + AuthContext for authentication
 - **Styling**: CSS-in-JS with global styles in `src/index.css`
 - **Components**: Reusable components in `src/components/`
+- **Auth**: `AuthContext` provides `useAuth` hook with `authFetch` helper
 
 ### Backend (Node.js + Express)
 - **Server**: `server/index.js` - Express server on port 3001
@@ -29,9 +33,13 @@ Asset Handover Management System for Ajman University - a full-stack web applica
   - Automated reminders (`reminderService.js`)
   - Structured logging (`logger.js`)
   - Error tracking (`sentry.js`)
+  - OTP management (`otpService.js`)
+  - Token management (`tokenService.js`)
 - **Middleware**:
   - Request logging (`middleware/requestLogger.js`)
   - Error handling (`middleware/errorHandler.js`)
+  - Authentication (`middleware/auth.js`)
+  - Validation (`middleware/validation.js`)
 - **Migrations**: Database schema updates in `server/migrations/`
 
 ### Observability Stack
@@ -52,6 +60,23 @@ Asset Handover Management System for Ajman University - a full-stack web applica
 - **Validation**: express-validator on all mutation routes
 - **CSRF Protection**: Content-Type + Origin validation
 - **Middleware**: `middleware/security.js`, `middleware/validation.js`, `middleware/csrf.js`
+
+### Authentication System (Phase 5.1)
+- **Login Method**: Employee ID + 6-digit OTP (no passwords)
+- **Token Strategy**: JWT access tokens (15 min) + refresh tokens (7 days, httpOnly cookie)
+- **Roles**: Admin (full access), Staff (manage assets), Viewer (read-only)
+- **Services**:
+  - `server/services/otpService.js` - OTP generation, validation, rate limiting
+  - `server/services/tokenService.js` - JWT and refresh token management
+- **Middleware**:
+  - `authenticateToken` - Validates JWT access token
+  - `requireRole(...roles)` - Checks user has required role
+  - `requireAdmin` - Shorthand for admin-only routes
+  - `requireStaff` - Shorthand for staff/admin routes
+- **Frontend**:
+  - `src/contexts/AuthContext.jsx` - Auth state, `useAuth` hook
+  - `src/components/ProtectedRoute.jsx` - Route protection wrapper
+  - `authFetch` helper - Automatic token refresh on 401
 
 ### Database Schema
 
@@ -76,6 +101,20 @@ Asset Handover Management System for Ajman University - a full-stack web applica
   - Reminders: `last_reminder_sent`, `reminder_count`
 
 - **`assignment_items`**: Many-to-many relationship between assignments and assets
+
+#### Authentication Tables (Phase 5.1)
+- **`users`**: User accounts linked to employees
+  - `employee_id` (FK to employees), `role` (admin/staff/viewer), `is_active`
+  - `created_at`, `created_by`, `updated_at`, `last_login_at`
+
+- **`otp_codes`**: One-time passwords for login
+  - `user_id`, `code`, `expires_at`, `used`, `created_at`, `ip_address`
+
+- **`refresh_tokens`**: JWT refresh tokens (hashed)
+  - `user_id`, `token_hash`, `expires_at`, `revoked`, `created_at`
+
+- **`otp_rate_limits`**: Rate limiting for OTP requests
+  - `identifier`, `request_count`, `window_start`
 
 ### Key Features
 
@@ -113,6 +152,27 @@ Asset Handover Management System for Ajman University - a full-stack web applica
     - Tracks who actually signed (primary vs backup)
 
 13. **Resend Email**: Admin can resend signing links for unsigned assignments
+
+#### Phase 5.1 Features (December 2025)
+14. **OTP-Based Authentication**: Login via Employee ID + 6-digit OTP
+    - No passwords required
+    - OTP sent to employee email
+    - Rate limiting (20 dev / 5 prod per 15 min)
+
+15. **JWT + Refresh Token System**:
+    - Access tokens (15 min expiry)
+    - Refresh tokens (7 day, httpOnly cookie)
+    - Automatic token refresh on 401
+
+16. **Role-Based Access Control**:
+    - Admin: Full access to all features
+    - Staff: Manage assets and assignments
+    - Viewer: Read-only access to dashboard and assignments
+
+17. **User Management** (Admin only):
+    - Create users by linking employees
+    - Update roles, activate/deactivate users
+    - View unlinked employees
 
 ### Theme System
 - **Location**: `src/themes.js` (theme definitions), `src/components/ThemeSwitcher.jsx` (UI component)
@@ -170,6 +230,17 @@ node server/migrations/001_add_signature_fields.js
 node server/migrations/002_fix_signature_token.js
 node server/migrations/003_add_location_options.js
 node server/migrations/004_add_backup_email.js
+node server/migrations/005_add_transfer_fields.js
+node server/migrations/006_add_auth_tables.js
+```
+
+### Create Initial Admin User
+```bash
+# List available employees
+node server/seeds/createAdmin.js
+
+# Create admin from employee ID
+node server/seeds/createAdmin.js 1
 ```
 
 ## Important Implementation Details
@@ -194,6 +265,8 @@ node server/migrations/004_add_backup_email.js
   5. Dispute notification to admin
   6. Reminder emails (every 7 days, max 4)
   7. Resend signing link
+  8. OTP login code (Phase 5.1)
+  9. Transfer notifications (Phase 4.5)
 - **Email Parameters**: Function accepts destructured object with many optional parameters:
   - `email`, `employeeName`, `employeeId`, `primaryEmail`, `employeeEmail`
   - `officeCollege`, `signingUrl`, `expiresAt`, `assetCount`, `signatureDate`
@@ -242,6 +315,23 @@ node server/migrations/004_add_backup_email.js
 
 ### Reminders
 - `POST /api/reminders/trigger` - Manually trigger reminder check
+
+### Authentication (Phase 5.1)
+- `POST /api/auth/request-otp` - Request OTP for login (public)
+- `POST /api/auth/verify-otp` - Verify OTP and get tokens (public)
+- `POST /api/auth/refresh` - Refresh access token (uses cookie)
+- `POST /api/auth/logout` - Logout current session (requires auth)
+- `POST /api/auth/logout-all` - Logout all devices (requires auth)
+- `GET /api/auth/me` - Get current user info (requires auth)
+
+### User Management (Admin only, Phase 5.1)
+- `GET /api/users` - List all users
+- `GET /api/users/:id` - Get single user
+- `POST /api/users` - Create user (link employee)
+- `PUT /api/users/:id` - Update user role/status
+- `DELETE /api/users/:id` - Deactivate user
+- `PUT /api/users/:id/reactivate` - Reactivate user
+- `GET /api/users/available/employees` - Get unlinked employees
 
 ## Common Development Tasks
 
@@ -456,6 +546,11 @@ ADMIN_EMAIL=store@ajman.ac.ae
 
 # Base URL (used in signing links)
 BASE_URL=https://yourdomain.com
+
+# JWT Secrets (REQUIRED - generate secure random strings!)
+# Generate with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_REFRESH_SECRET=your-refresh-secret-key-change-in-production
 ```
 
 ### Optional Configuration
@@ -575,14 +670,20 @@ This project uses the latest stable versions as of December 2024:
 
 ## Project Status
 
-**Current Phase:** Phase 4 Complete (December 2025)
+**Current Phase:** Phase 5.1 Complete (December 2025)
 **Technical Debt:** Observability, Security Hardening, Testing Infrastructure - Complete
+
+### Completed Phases
+- **Phase 1-4**: Asset management, digital signatures, UI enhancements
+- **Phase 4.5**: Asset transfer feature
+- **Phase 5.1**: OTP-based authentication, JWT tokens, role-based access control
 
 ### Completed Technical Debt
 - **Observability**: Pino logging, Sentry error tracking, health checks
 - **Security Hardening**: Helmet headers, express-validator, CSRF protection
 - **Testing Infrastructure**: Vitest (36 tests), Playwright E2E tests
+- **Authentication**: OTP login, JWT + refresh tokens, RBAC
 
-**Next Phase:** Phase 5 - Advanced Features (User Authentication)
+**Next Phase:** Phase 5.2 - Protect existing API routes with authentication middleware
 
 See `ROADMAP.md` for detailed phase breakdown and future plans.
