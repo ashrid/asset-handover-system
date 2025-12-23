@@ -334,6 +334,135 @@ export const themes = {
       border: '#e5e7eb',
       borderDark: '#d1d5db',
     }
+  },
+
+  daylight: {
+    name: 'Daylight Comfort',
+    colors: {
+      // Warm, eye-friendly colors for all-day productivity
+      // Inspired by Arc, Todoist, and Basecamp
+      primary: '#0d9488',           // Teal - calming yet distinct
+      primaryHover: '#0f766e',      // Darker teal
+      primaryLight: '#ccfbf1',      // Very light teal
+
+      secondary: '#6366f1',         // Indigo accent
+      accent: '#f59e0b',            // Warm amber for highlights
+
+      // Semantic colors - softer, less harsh
+      success: '#059669',           // Emerald green
+      successLight: '#d1fae5',
+      warning: '#d97706',           // Warm amber
+      warningLight: '#fef3c7',
+      danger: '#dc2626',            // Red, but not harsh
+      dangerLight: '#fee2e2',
+      info: '#0891b2',              // Cyan
+      infoLight: '#cffafe',
+
+      // Backgrounds - warm off-white, reduces eye strain
+      background: '#fefdfb',        // Warm cream white
+      cardBackground: '#ffffff',
+      headerBg: '#f8f7f4',          // Warm light gray
+
+      // Text colors - softer than pure black
+      textPrimary: '#292524',       // Stone-800 (warm dark)
+      textSecondary: '#57534e',     // Stone-600
+      textLight: '#a8a29e',         // Stone-400
+
+      // Table specific
+      tableHeaderBg: '#f5f5f4',     // Stone-100
+      tableHeaderText: '#292524',
+      tableStripeBg: '#fafaf9',     // Stone-50
+
+      // Borders - subtle warm gray
+      border: '#e7e5e4',            // Stone-200
+      borderDark: '#d6d3d1',        // Stone-300
+    }
+  },
+
+  oceanBreeze: {
+    name: 'Ocean Breeze',
+    colors: {
+      // Cool, refreshing blue palette - popular for professional apps
+      // Inspired by Stripe, Tailwind UI
+      primary: '#3b82f6',           // Blue-500 - vibrant but not harsh
+      primaryHover: '#2563eb',      // Blue-600
+      primaryLight: '#dbeafe',      // Blue-100
+
+      secondary: '#8b5cf6',         // Violet accent
+      accent: '#06b6d4',            // Cyan for highlights
+
+      // Semantic colors
+      success: '#22c55e',           // Green-500
+      successLight: '#dcfce7',
+      warning: '#eab308',           // Yellow-500
+      warningLight: '#fef9c3',
+      danger: '#ef4444',            // Red-500
+      dangerLight: '#fee2e2',
+      info: '#0ea5e9',              // Sky-500
+      infoLight: '#e0f2fe',
+
+      // Backgrounds - clean with slight cool tint
+      background: '#f8fafc',        // Slate-50
+      cardBackground: '#ffffff',
+      headerBg: '#f1f5f9',          // Slate-100
+
+      // Text colors
+      textPrimary: '#0f172a',       // Slate-900
+      textSecondary: '#475569',     // Slate-600
+      textLight: '#94a3b8',         // Slate-400
+
+      // Table specific
+      tableHeaderBg: '#f1f5f9',
+      tableHeaderText: '#0f172a',
+      tableStripeBg: '#f8fafc',
+
+      // Borders
+      border: '#e2e8f0',            // Slate-200
+      borderDark: '#cbd5e1',        // Slate-300
+    }
+  },
+
+  rosePetal: {
+    name: 'Rose Petal',
+    colors: {
+      // Soft rose/pink palette - trendy and modern
+      // Popular in design tools and creative apps
+      primary: '#e11d48',           // Rose-600
+      primaryHover: '#be123c',      // Rose-700
+      primaryLight: '#ffe4e6',      // Rose-100
+
+      secondary: '#8b5cf6',         // Violet
+      accent: '#f97316',            // Orange accent
+
+      // Semantic colors
+      success: '#10b981',           // Emerald
+      successLight: '#d1fae5',
+      warning: '#f59e0b',           // Amber
+      warningLight: '#fef3c7',
+      danger: '#dc2626',            // Red
+      dangerLight: '#fee2e2',
+      info: '#ec4899',              // Pink
+      infoLight: '#fce7f3',
+
+      // Backgrounds - very subtle rose tint
+      background: '#fffbfc',        // Barely there rose
+      cardBackground: '#ffffff',
+      headerBg: '#fdf2f4',          // Light rose
+
+      // Text colors
+      textPrimary: '#1c1917',       // Warm black
+      textSecondary: '#57534e',     // Stone-600
+      textLight: '#a8a29e',         // Stone-400
+
+      // Table specific
+      tableHeaderBg: '#fdf2f4',
+      tableHeaderText: '#1c1917',
+      tableStripeBg: '#fffbfc',
+
+      // Borders
+      border: '#fecdd3',            // Rose-200
+      borderDark: '#fda4af',        // Rose-300
+    }
   }
 }
 
@@ -357,5 +486,37 @@ export function getStoredTheme() {
 export function initializeTheme() {
   const storedTheme = getStoredTheme()
   applyTheme(storedTheme)
+
+  // Also initialize compact mode
+  initializeCompactMode()
+
   return storedTheme
+}
+
+// Compact Mode Functions
+export function setCompactMode(enabled) {
+  if (enabled) {
+    document.body.classList.add('compact-mode')
+  } else {
+    document.body.classList.remove('compact-mode')
+  }
+  localStorage.setItem('compactMode', enabled ? 'true' : 'false')
+}
+
+export function getCompactMode() {
+  const stored = localStorage.getItem('compactMode')
+  // Default to true (compact mode) if not explicitly set to false
+  return stored === null ? true : stored === 'true'
+}
+
+export function initializeCompactMode() {
+  const isCompact = getCompactMode()
+  setCompactMode(isCompact)
+  return isCompact
+}
+
+export function toggleCompactMode() {
+  const current = getCompactMode()
+  setCompactMode(!current)
+  return !current
 }

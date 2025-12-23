@@ -1,8 +1,13 @@
 import express from 'express';
 import db from '../database.js';
 import { employeeValidation } from '../middleware/validation.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// All employee routes require authentication and staff/admin role
+router.use(authenticateToken);
+router.use(requireRole('admin', 'staff'));
 
 // Get all employees
 router.get('/', (req, res) => {

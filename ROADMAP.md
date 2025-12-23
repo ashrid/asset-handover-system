@@ -863,11 +863,15 @@ node server/seeds/createAdmin.js 1
 - ✅ Role-Based Access Control (Admin, Staff, Viewer)
 - ✅ User Management (Admin-only CRUD)
 
-### Next Up (Phase 5.2)
-- 📋 Protect Existing API Routes with Authentication
+### Recently Completed (Phase 5.2)
+- ✅ API Route Protection with Authentication Middleware
+  - Dashboard routes: requireAuth (any role)
+  - Assets/Employees routes: requireStaff (admin, staff)
+  - Handover routes: Mixed protection (public signature endpoints preserved)
+  - Locations routes: requireAuth + requireStaff for mutations
+  - Reminders trigger: requireAdmin
 
 ### Pending Features (Phase 5+)
-- ⏳ Protect Existing Routes (5.2)
 - ⏳ Asset History & Audit Log (5.4)
 - ⏳ Advanced Notifications (5.5)
 - ⏳ Multi-Language Support (5.6)
@@ -1094,9 +1098,9 @@ npm run playwright:install  # Install browser
 - [x] Add input sanitization/validation ✅
 - [x] Security headers (Helmet) ✅
 - [x] OTP rate limiting ✅
+- [x] Protect existing routes with auth (Phase 5.2) ✅
 - [ ] API rate limiting (general)
 - [ ] HTTPS enforcement (deployment)
-- [ ] Protect existing routes with auth (Phase 5.2)
 
 ### Performance
 - [ ] Database indexing optimization
@@ -1169,4 +1173,4 @@ npm run playwright:install  # Install browser
 
 ---
 
-**Next Actions:** Begin Phase 5.2 - Protect existing API routes with authentication middleware.
+**Next Actions:** Phase 5.2 complete. Consider Phase 5.4 (Asset History & Audit Log) or Phase 6 (Reporting & Analytics Dashboard).

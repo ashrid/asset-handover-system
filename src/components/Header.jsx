@@ -108,15 +108,15 @@ function Header({ currentPage, setCurrentPage }) {
 
           {/* Desktop Navigation - inline when scrolled */}
           {isScrolled && (
-            <nav className="hidden lg:flex items-center gap-2">
+            <nav className="hidden lg:flex items-center gap-1.5 flex-nowrap">
               {navItems.map((item) => (
                 <button
                   key={item.path}
                   onClick={() => handleNavigation(item.path.substring(1), item.path)}
-                  className={`nav-button-compact flex items-center gap-1.5 px-3 py-1.5 text-sm ${isActive(item.path) ? 'active' : ''}`}
+                  className={`nav-button-compact flex items-center gap-1.5 ${isActive(item.path) ? 'active' : ''}`}
                 >
                   <i className={`fas ${item.icon}`}></i>
-                  <span>{item.label}</span>
+                  <span className="whitespace-nowrap">{item.label}</span>
                 </button>
               ))}
               <ThemeSwitcher compact />
@@ -133,15 +133,16 @@ function Header({ currentPage, setCurrentPage }) {
                   <i className={`fas fa-chevron-down text-xs text-text-secondary transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}></i>
                 </button>
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-fadeIn">
-                    <div className="p-3 border-b border-border bg-surface-secondary">
-                      <p className="font-medium text-text-primary truncate">{user?.name}</p>
-                      <p className="text-xs text-text-secondary truncate">{user?.email}</p>
+                  <div className="absolute right-0 mt-2 w-56 rounded-xl shadow-lg border overflow-hidden z-50 animate-fadeIn"
+                       style={{ background: 'var(--theme-cardBackground)', borderColor: 'var(--theme-border)' }}>
+                    <div className="p-3 border-b" style={{ background: 'var(--theme-headerBg)', borderColor: 'var(--theme-border)' }}>
+                      <p className="font-medium truncate" style={{ color: 'var(--theme-textPrimary)' }}>{user?.name}</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--theme-textSecondary)' }}>{user?.email}</p>
                       <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full border ${getRoleBadgeColor(user?.role)}`}>
                         {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
                       </span>
                     </div>
-                    <div className="py-1">
+                    <div className="py-1" style={{ background: 'var(--theme-cardBackground)' }}>
                       <button
                         onClick={handleLogout}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
@@ -182,16 +183,17 @@ function Header({ currentPage, setCurrentPage }) {
                 <i className={`fas fa-chevron-down text-xs transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}></i>
               </button>
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-fadeIn">
-                  <div className="p-4 border-b border-border bg-surface-secondary">
-                    <p className="font-semibold text-text-primary truncate">{user?.name}</p>
-                    <p className="text-sm text-text-secondary truncate">{user?.email}</p>
-                    <p className="text-xs text-text-secondary mt-1">ID: {user?.employeeId}</p>
+                <div className="absolute right-0 mt-2 w-64 rounded-xl shadow-lg border overflow-hidden z-50 animate-fadeIn"
+                     style={{ background: 'var(--theme-cardBackground)', borderColor: 'var(--theme-border)' }}>
+                  <div className="p-4 border-b" style={{ background: 'var(--theme-headerBg)', borderColor: 'var(--theme-border)' }}>
+                    <p className="font-semibold truncate" style={{ color: 'var(--theme-textPrimary)' }}>{user?.name}</p>
+                    <p className="text-sm truncate" style={{ color: 'var(--theme-textSecondary)' }}>{user?.email}</p>
+                    <p className="text-xs mt-1" style={{ color: 'var(--theme-textSecondary)' }}>ID: {user?.employeeId}</p>
                     <span className={`inline-block mt-2 px-2.5 py-1 text-xs font-medium rounded-full border ${getRoleBadgeColor(user?.role)}`}>
                       {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
                     </span>
                   </div>
-                  <div className="py-2">
+                  <div className="py-2" style={{ background: 'var(--theme-cardBackground)' }}>
                     <button
                       onClick={handleLogout}
                       className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"

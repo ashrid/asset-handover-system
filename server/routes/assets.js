@@ -1,8 +1,13 @@
 import express from 'express';
 import db from '../database.js';
 import { assetValidation } from '../middleware/validation.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// All asset routes require authentication and staff/admin role
+router.use(authenticateToken);
+router.use(requireRole('admin', 'staff'));
 
 // Get all assets
 router.get('/', (req, res) => {

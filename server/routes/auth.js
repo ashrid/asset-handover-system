@@ -122,12 +122,26 @@ router.post('/verify-otp', authValidation.verifyOTP, async (req, res) => {
     }
 
     // Verify OTP
-    const isValid = verifyOTP(user.id, otp_code);
+    const result = verifyOTP(user.id, otp_code);
 
-    if (!isValid) {
+    if (!result.valid) {
+      let message = 'Invalid or expired OTP';
+      let code = 'INVALID_OTP';
+
+      if (result.reason === 'expired') {
+        message = 'OTP has expired. Please request a new code.';
+        code = 'OTP_EXPIRED';
+      } else if (result.reason === 'max_attempts') {
+        message = 'Too many failed attempts. Please request a new code.';
+        code = 'MAX_ATTEMPTS_EXCEEDED';
+      } else if (result.reason === 'invalid_code' && result.attemptsRemaining !== undefined) {
+        message = `Invalid code. ${result.attemptsRemaining} attempt${result.attemptsRemaining !== 1 ? 's' : ''} remaining.`;
+        code = 'INVALID_CODE';
+      }
+
       return res.status(401).json({
         success: false,
-        error: { message: 'Invalid or expired OTP', code: 'INVALID_OTP' }
+        error: { message, code, attemptsRemaining: result.attemptsRemaining }
       });
     }
 

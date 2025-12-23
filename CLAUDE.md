@@ -232,6 +232,7 @@ node server/migrations/003_add_location_options.js
 node server/migrations/004_add_backup_email.js
 node server/migrations/005_add_transfer_fields.js
 node server/migrations/006_add_auth_tables.js
+node server/migrations/007_add_otp_failed_attempts.js
 ```
 
 ### Create Initial Admin User
@@ -670,13 +671,14 @@ This project uses the latest stable versions as of December 2024:
 
 ## Project Status
 
-**Current Phase:** Phase 5.1 Complete (December 2025)
+**Current Phase:** Phase 5.2 Complete (December 2025)
 **Technical Debt:** Observability, Security Hardening, Testing Infrastructure - Complete
 
 ### Completed Phases
 - **Phase 1-4**: Asset management, digital signatures, UI enhancements
 - **Phase 4.5**: Asset transfer feature
 - **Phase 5.1**: OTP-based authentication, JWT tokens, role-based access control
+- **Phase 5.2**: API route protection with authentication middleware
 
 ### Completed Technical Debt
 - **Observability**: Pino logging, Sentry error tracking, health checks
@@ -684,6 +686,16 @@ This project uses the latest stable versions as of December 2024:
 - **Testing Infrastructure**: Vitest (36 tests), Playwright E2E tests
 - **Authentication**: OTP login, JWT + refresh tokens, RBAC
 
-**Next Phase:** Phase 5.2 - Protect existing API routes with authentication middleware
+### API Route Protection (Phase 5.2)
+All API routes are now protected with appropriate authentication and authorization:
+- **Dashboard routes**: Require authentication (any role)
+- **Assets routes**: Require staff or admin role
+- **Employees routes**: Require staff or admin role
+- **Handover routes**: Mixed - mutations require staff/admin, reads require auth, signature endpoints remain public
+- **Locations routes**: Require authentication, mutations require staff/admin
+- **Reminders trigger**: Require admin role
+- **Health routes**: Remain public (for container orchestration)
+
+**Next Phase:** Phase 6 - Reporting & Analytics Dashboard
 
 See `ROADMAP.md` for detailed phase breakdown and future plans.

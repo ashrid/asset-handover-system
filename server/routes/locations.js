@@ -1,7 +1,11 @@
 import express from 'express';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import db from '../database.js';
 
 const router = express.Router();
+
+// All location routes require authentication
+router.use(authenticateToken);
 
 // Get all location options (grouped by category)
 router.get('/options', (req, res) => {
@@ -58,8 +62,8 @@ router.get('/options/:category', (req, res) => {
   }
 });
 
-// Add new location option
-router.post('/options', (req, res) => {
+// Add new location option (staff/admin only)
+router.post('/options', requireRole('admin', 'staff'), (req, res) => {
   try {
     const { category, value } = req.body;
 
@@ -124,8 +128,8 @@ router.post('/options', (req, res) => {
   }
 });
 
-// Delete location option (admin only)
-router.delete('/options/:id', (req, res) => {
+// Delete location option (staff/admin only)
+router.delete('/options/:id', requireRole('admin', 'staff'), (req, res) => {
   try {
     const { id } = req.params;
 

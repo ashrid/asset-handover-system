@@ -4,11 +4,16 @@ import db from '../database.js';
 import { generateHandoverPDF } from '../services/pdfGenerator.js';
 import { sendHandoverEmail } from '../services/emailService.js';
 import { handoverValidation } from '../middleware/validation.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Create asset assignment and send handover email
-router.post('/', handoverValidation.create, async (req, res) => {
+// Middleware helpers for this route
+const requireAuth = authenticateToken;
+const requireStaff = [authenticateToken, requireRole('admin', 'staff')];
+
+// Create asset assignment and send handover email (staff/admin only)
+router.post('/', requireStaff, handoverValidation.create, async (req, res) => {
   try {
     const { employee_name, employee_id, email, office_college, backup_email, asset_ids } = req.body;
 
@@ -114,8 +119,8 @@ router.post('/', handoverValidation.create, async (req, res) => {
   }
 });
 
-// Get all assignments
-router.get('/assignments', (req, res) => {
+// Get all assignments (any authenticated user)
+router.get('/assignments', requireAuth, (req, res) => {
   try {
     const assignments = db.prepare(`
       SELECT
@@ -151,8 +156,8 @@ router.get('/assignments', (req, res) => {
   }
 });
 
-// Get assignment details
-router.get('/assignments/:id', (req, res) => {
+// Get assignment details (any authenticated user)
+router.get('/assignments/:id', requireAuth, (req, res) => {
   try {
     const assignment = db.prepare(`
       SELECT
@@ -349,8 +354,8 @@ router.post('/submit-signature/:token', handoverValidation.submitSignature, asyn
   }
 });
 
-// Delete assignment (only if not signed)
-router.delete('/assignments/:id', (req, res) => {
+// Delete assignment (only if not signed) - staff/admin only
+router.delete('/assignments/:id', requireStaff, (req, res) => {
   try {
     const { id } = req.params;
 
@@ -391,8 +396,8 @@ router.delete('/assignments/:id', (req, res) => {
   }
 });
 
-// Resend signing email
-router.post('/resend/:id', handoverValidation.resend, async (req, res) => {
+// Resend signing email (staff/admin only)
+router.post('/resend/:id', requireStaff, handoverValidation.resend, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -550,8 +555,8 @@ router.post('/dispute/:token', handoverValidation.submitDispute, async (req, res
   }
 });
 
-// Edit assets in an existing assignment (admin only)
-router.put('/assignments/:id/assets', handoverValidation.updateAssets, async (req, res) => {
+// Edit assets in an existing assignment (staff/admin only)
+router.put('/assignments/:id/assets', requireStaff, handoverValidation.updateAssets, async (req, res) => {
   try {
     const assignmentId = req.params.id;
     const { asset_ids, send_notification } = req.body;
@@ -642,8 +647,8 @@ router.put('/assignments/:id/assets', handoverValidation.updateAssets, async (re
   }
 });
 
-// Transfer assets from a signed assignment to a new employee
-router.post('/transfer/:id', handoverValidation.transfer, async (req, res) => {
+// Transfer assets from a signed assignment to a new employee (staff/admin only)
+router.post('/transfer/:id', requireStaff, handoverValidation.transfer, async (req, res) => {
   try {
     const originalAssignmentId = req.params.id;
     const {

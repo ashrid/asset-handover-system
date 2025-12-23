@@ -17,6 +17,7 @@ import requestLogger from './middleware/requestLogger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { securityHeaders, additionalSecurityHeaders } from './middleware/security.js';
 import { validateContentType, validateOrigin } from './middleware/csrf.js';
+import { authenticateToken, requireRole } from './middleware/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -78,8 +79,8 @@ app.use('/api/handover', handoverRouter);
 app.use('/api/locations', locationsRouter);
 app.use('/api/dashboard', dashboardRouter);
 
-// Manual reminder trigger endpoint (for testing/admin use)
-app.post('/api/reminders/trigger', async (req, res) => {
+// Manual reminder trigger endpoint (admin only)
+app.post('/api/reminders/trigger', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     logger.info('Manual reminder trigger requested');
     const result = await triggerManualReminder();

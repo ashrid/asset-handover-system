@@ -315,21 +315,6 @@ function HandoverPage() {
             </div>
           ) : (
             <>
-              <div className="mb-4">
-                <button
-                  type="button"
-                  className="btn-secondary text-sm flex items-center gap-2"
-                  onClick={handleSelectAll}
-                >
-                  <i className={`fas fa-${getFilteredAssets().every(a => selectedAssets.includes(a.id)) && getFilteredAssets().length > 0 ? 'times' : 'check-double'}`}></i>
-                  <span>
-                    {getFilteredAssets().every(a => selectedAssets.includes(a.id)) && getFilteredAssets().length > 0
-                      ? `Deselect ${searchFilter ? 'Filtered' : 'All'}`
-                      : `Select ${searchFilter ? 'Filtered' : 'All'}`}
-                  </span>
-                </button>
-              </div>
-
               {getFilteredAssets().length === 0 ? (
                 <div className="notification-premium notification-info text-center py-12">
                   <i className="fas fa-search text-4xl mb-4 opacity-75"></i>
@@ -338,43 +323,79 @@ function HandoverPage() {
                   <button className="btn-secondary" onClick={clearFilter}>Clear Search</button>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto custom-scrollbar border rounded-lg p-4 bg-background/50">
-                  {getFilteredAssets().map(asset => (
-                  <div
-                    key={asset.id}
-                    className={`p-4 border rounded-lg transition-all duration-200 ${
-                      selectedAssets.includes(asset.id)
-                        ? 'bg-primary-light/20 border-primary shadow-sm'
-                        : 'bg-card border hover:border-primary/50'
-                    }`}
-                  >
-                    <label className="flex items-center cursor-pointer w-full">
-                      <div className="relative flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedAssets.includes(asset.id)}
-                          onChange={() => handleAssetToggle(asset.id)}
-                          className="peer h-5 w-5 cursor-pointer appearance-none rounded border border checked:border-primary checked:bg-primary transition-all"
-                        />
-                        <i className="fas fa-check absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-xs opacity-0 peer-checked:opacity-100 pointer-events-none"></i>
-                      </div>
-                      <div className="ml-3 flex-1">
-                        <span className="font-semibold text-text-primary">
-                          {asset.asset_code}
-                        </span>
-                        <span className="ml-2 text-text-secondary">
-                          - {asset.asset_type}
-                        </span>
-                        {asset.description && (
-                          <span className="ml-2 text-text-light">- {asset.description}</span>
-                        )}
-                        {asset.model && (
-                          <span className="ml-2 text-text-light">({asset.model})</span>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="table-premium">
+                    <thead>
+                      <tr>
+                        <th className="w-12 text-center">
+                          <input
+                            type="checkbox"
+                            checked={getFilteredAssets().length > 0 && getFilteredAssets().every(a => selectedAssets.includes(a.id))}
+                            onChange={handleSelectAll}
+                            className="h-4 w-4 cursor-pointer rounded border-2 border-border accent-primary"
+                            title={getFilteredAssets().every(a => selectedAssets.includes(a.id)) ? 'Deselect All' : 'Select All'}
+                          />
+                        </th>
+                        <th>Asset Code</th>
+                        <th>Asset Type</th>
+                        <th>Description</th>
+                        <th>Model</th>
+                        <th>Serial Number</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {getFilteredAssets().map(asset => (
+                        <tr
+                          key={asset.id}
+                          onClick={() => handleAssetToggle(asset.id)}
+                          className={`cursor-pointer transition-colors ${
+                            selectedAssets.includes(asset.id)
+                              ? 'bg-primary-light/30'
+                              : 'hover:bg-header-bg'
+                          }`}
+                        >
+                          <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={selectedAssets.includes(asset.id)}
+                              onChange={() => handleAssetToggle(asset.id)}
+                              className="h-4 w-4 cursor-pointer rounded border-2 border-border accent-primary"
+                            />
+                          </td>
+                          <td>
+                            <strong className="text-text-primary">{asset.asset_code}</strong>
+                          </td>
+                          <td className="text-text-secondary">
+                            {asset.asset_type}
+                          </td>
+                          <td className="text-text-secondary">
+                            {asset.description || '-'}
+                          </td>
+                          <td className="text-text-secondary">
+                            {asset.model || '-'}
+                          </td>
+                          <td className="text-text-secondary">
+                            {asset.serial_number || '-'}
+                          </td>
+                          <td>
+                            {asset.status ? (
+                              <span className={`badge-premium whitespace-nowrap ${
+                                asset.status === 'Active' ? 'badge-success' :
+                                asset.status === 'Broken' ? 'badge-danger' :
+                                asset.status === 'Lost' ? 'badge-warning' :
+                                'badge-info'
+                              }`}>
+                                {asset.status}
+                              </span>
+                            ) : (
+                              <span className="text-text-light">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </>

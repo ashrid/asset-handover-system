@@ -287,13 +287,7 @@ function SignaturePage() {
   // Loading state
   if (loading) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--theme-bg-primary)'
-      }}>
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="spinner-premium"></div>
       </div>
     )
@@ -302,23 +296,12 @@ function SignaturePage() {
   // Error state
   if (error) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'var(--theme-bg-primary)',
-        padding: '20px'
-      }}>
-        <div className="premium-card" style={{ maxWidth: '500px', width: '100%', textAlign: 'center' }}>
+      <div className="min-h-screen flex items-center justify-center bg-background p-5">
+        <div className="premium-card max-w-md w-full text-center">
           <div className="card-body">
-            <i className="fas fa-exclamation-circle" style={{
-              fontSize: '64px',
-              color: 'var(--theme-danger)',
-              marginBottom: '20px'
-            }}></i>
-            <h2 className="gradient-text" style={{ marginBottom: '15px' }}>Access Error</h2>
-            <p style={{ color: 'var(--theme-text-secondary)', fontSize: '16px' }}>{error}</p>
+            <i className="fas fa-exclamation-circle text-6xl text-danger mb-5"></i>
+            <h2 className="gradient-text mb-4">Access Error</h2>
+            <p className="text-text-secondary">{error}</p>
           </div>
         </div>
       </div>
@@ -326,122 +309,59 @@ function SignaturePage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--theme-bg-primary)',
-      padding: '40px 20px'
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="min-h-screen bg-background py-10 px-5">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 className="gradient-text" style={{ fontSize: '32px', marginBottom: '10px' }}>
+        <div className="text-center mb-10">
+          <h1 className="gradient-text text-3xl mb-2">
             Asset Handover Acknowledgement
           </h1>
-          <p style={{ color: 'var(--theme-text-secondary)', fontSize: '16px' }}>
+          <p className="text-text-secondary">
             Ajman University - Main Store
           </p>
         </div>
 
         {/* Notification Message */}
         {message && (
-          <div className={`notification-premium ${message.type}`} style={{ marginBottom: '30px' }}>
+          <div className={`notification-premium notification-${message.type} mb-8`}>
             {message.text}
           </div>
         )}
 
         {/* Employee Information */}
-        <div className="premium-card" style={{ marginBottom: '30px' }}>
+        <div className="premium-card mb-8">
           <div className="card-header">
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Employee Information</h2>
+            <h2 className="text-xl font-semibold m-0">Employee Information</h2>
           </div>
           <div className="card-body">
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: '20px'
-            }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '5px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-secondary)'
-                }}>Employee Name</label>
-                <div style={{
-                  padding: '10px 15px',
-                  background: 'var(--theme-bg-secondary)',
-                  borderRadius: '8px',
-                  color: 'var(--theme-text-primary)'
-                }}>
+                <label className="block mb-1 text-sm font-medium text-text-secondary">Employee Name</label>
+                <div className="info-display-field">
                   {assignment.employee_name}
                 </div>
               </div>
               <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '5px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-secondary)'
-                }}>Employee ID</label>
-                <div style={{
-                  padding: '10px 15px',
-                  background: 'var(--theme-bg-secondary)',
-                  borderRadius: '8px',
-                  color: 'var(--theme-text-primary)'
-                }}>
+                <label className="block mb-1 text-sm font-medium text-text-secondary">Employee ID</label>
+                <div className="info-display-field">
                   {assignment.employee_id_number || 'N/A'}
                 </div>
               </div>
               <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '5px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-secondary)'
-                }}>Email</label>
-                <div style={{
-                  padding: '10px 15px',
-                  background: 'var(--theme-bg-secondary)',
-                  borderRadius: '8px',
-                  color: 'var(--theme-text-primary)'
-                }}>
+                <label className="block mb-1 text-sm font-medium text-text-secondary">Email</label>
+                <div className="info-display-field">
                   {assignment.email}
                 </div>
               </div>
               <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '5px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-secondary)'
-                }}>Office/College</label>
-                <div style={{
-                  padding: '10px 15px',
-                  background: 'var(--theme-bg-secondary)',
-                  borderRadius: '8px',
-                  color: 'var(--theme-text-primary)'
-                }}>
+                <label className="block mb-1 text-sm font-medium text-text-secondary">Office/College</label>
+                <div className="info-display-field">
                   {assignment.office_college || 'N/A'}
                 </div>
               </div>
               <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '5px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-secondary)'
-                }}>Assignment Date</label>
-                <div style={{
-                  padding: '10px 15px',
-                  background: 'var(--theme-bg-secondary)',
-                  borderRadius: '8px',
-                  color: 'var(--theme-text-primary)'
-                }}>
+                <label className="block mb-1 text-sm font-medium text-text-secondary">Assignment Date</label>
+                <div className="info-display-field">
                   {formatDate(assignment.assigned_at)}
                 </div>
               </div>
@@ -450,12 +370,12 @@ function SignaturePage() {
         </div>
 
         {/* Assigned Assets */}
-        <div className="premium-card" style={{ marginBottom: '30px' }}>
+        <div className="premium-card mb-8">
           <div className="card-header">
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Assigned Assets</h2>
+            <h2 className="text-xl font-semibold m-0">Assigned Assets</h2>
           </div>
           <div className="card-body">
-            <div style={{ overflowX: 'auto' }}>
+            <div className="overflow-x-auto">
               <table className="table-premium">
                 <thead>
                   <tr>
@@ -479,7 +399,7 @@ function SignaturePage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" style={{ textAlign: 'center', color: 'var(--theme-text-secondary)' }}>
+                      <td colSpan="5" className="text-center text-text-secondary">
                         No assets assigned
                       </td>
                     </tr>
@@ -491,33 +411,22 @@ function SignaturePage() {
         </div>
 
         {/* Location Information */}
-        <div className="premium-card" style={{ marginBottom: '30px' }}>
+        <div className="premium-card mb-8">
           <div className="card-header">
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Location Information (Optional)</h2>
+            <h2 className="text-xl font-semibold m-0">Location Information (Optional)</h2>
           </div>
           <div className="card-body">
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: '20px'
-            }}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
-                <label htmlFor="building" style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-primary)'
-                }}>
+                <label htmlFor="building" className="block mb-2 text-sm font-medium text-text-primary">
                   Building
                 </label>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                <div className="flex gap-2">
                   <select
                     id="building"
-                    className="input-premium"
+                    className="input-premium flex-1"
                     value={locationBuilding}
                     onChange={(e) => setLocationBuilding(e.target.value)}
-                    style={{ flex: 1 }}
                   >
                     <option value="">Select Building</option>
                     {locationOptions.building.map(opt => (
@@ -526,16 +435,9 @@ function SignaturePage() {
                   </select>
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary btn-icon-only"
                     onClick={() => openAddLocationModal('building')}
                     disabled={isSubmitting}
-                    style={{
-                      padding: '10px 15px',
-                      minWidth: 'auto',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
                     title="Add new building"
                   >
                     <i className="fas fa-plus"></i>
@@ -543,22 +445,15 @@ function SignaturePage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="floor" style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-primary)'
-                }}>
+                <label htmlFor="floor" className="block mb-2 text-sm font-medium text-text-primary">
                   Floor
                 </label>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                <div className="flex gap-2">
                   <select
                     id="floor"
-                    className="input-premium"
+                    className="input-premium flex-1"
                     value={locationFloor}
                     onChange={(e) => setLocationFloor(e.target.value)}
-                    style={{ flex: 1 }}
                   >
                     <option value="">Select Floor</option>
                     {locationOptions.floor.map(opt => (
@@ -567,16 +462,9 @@ function SignaturePage() {
                   </select>
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary btn-icon-only"
                     onClick={() => openAddLocationModal('floor')}
                     disabled={isSubmitting}
-                    style={{
-                      padding: '10px 15px',
-                      minWidth: 'auto',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
                     title="Add new floor"
                   >
                     <i className="fas fa-plus"></i>
@@ -584,22 +472,15 @@ function SignaturePage() {
                 </div>
               </div>
               <div>
-                <label htmlFor="section" style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-primary)'
-                }}>
+                <label htmlFor="section" className="block mb-2 text-sm font-medium text-text-primary">
                   Section
                 </label>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                <div className="flex gap-2">
                   <select
                     id="section"
-                    className="input-premium"
+                    className="input-premium flex-1"
                     value={locationSection}
                     onChange={(e) => setLocationSection(e.target.value)}
-                    style={{ flex: 1 }}
                   >
                     <option value="">Select Section</option>
                     {locationOptions.section.map(opt => (
@@ -608,16 +489,9 @@ function SignaturePage() {
                   </select>
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary btn-icon-only"
                     onClick={() => openAddLocationModal('section')}
                     disabled={isSubmitting}
-                    style={{
-                      padding: '10px 15px',
-                      minWidth: 'auto',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
                     title="Add new section"
                   >
                     <i className="fas fa-plus"></i>
@@ -629,95 +503,45 @@ function SignaturePage() {
         </div>
 
         {/* Device Type */}
-        <div className="premium-card" style={{ marginBottom: '30px' }}>
+        <div className="premium-card mb-8">
           <div className="card-header">
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Device Type (Optional)</h2>
+            <h2 className="text-xl font-semibold m-0">Device Type (Optional)</h2>
           </div>
           <div className="card-body">
-            <p style={{
-              marginBottom: '15px',
-              color: 'var(--theme-text-secondary)',
-              fontSize: '14px'
-            }}>
+            <p className="mb-4 text-text-secondary text-sm">
               Select where these devices will be used. You can select multiple options.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <label style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '12px',
-                cursor: 'pointer',
-                padding: '12px',
-                border: '2px solid var(--theme-border)',
-                borderRadius: '8px',
-                background: deviceType.includes('Office Device') ? 'var(--theme-bg-secondary)' : 'transparent',
-                transition: 'all 0.2s'
-              }}>
+            <div className="flex flex-col gap-4">
+              <label className={`device-type-option ${deviceType.includes('Office Device') ? 'selected' : ''}`}>
                 <input
                   type="checkbox"
                   checked={deviceType.includes('Office Device')}
                   onChange={() => handleDeviceTypeToggle('Office Device')}
                   disabled={isSubmitting}
-                  style={{
-                    marginTop: '3px',
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer'
-                  }}
+                  className="device-type-checkbox"
                 />
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontWeight: '600',
-                    color: 'var(--theme-text-primary)',
-                    marginBottom: '5px'
-                  }}>
+                <div className="flex-1">
+                  <div className="font-semibold text-text-primary mb-1">
                     Office Device
                   </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: 'var(--theme-text-secondary)',
-                    lineHeight: '1.5'
-                  }}>
+                  <div className="text-sm text-text-secondary leading-relaxed">
                     I understand that I will be responsible for any misuse or damages that may occur. I confirm that this device(s) will be used for work purpose only.
                   </div>
                 </div>
               </label>
-              <label style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '12px',
-                cursor: 'pointer',
-                padding: '12px',
-                border: '2px solid var(--theme-border)',
-                borderRadius: '8px',
-                background: deviceType.includes('Lab Device') ? 'var(--theme-bg-secondary)' : 'transparent',
-                transition: 'all 0.2s'
-              }}>
+              <label className={`device-type-option ${deviceType.includes('Lab Device') ? 'selected' : ''}`}>
                 <input
                   type="checkbox"
                   checked={deviceType.includes('Lab Device')}
                   onChange={() => handleDeviceTypeToggle('Lab Device')}
                   disabled={isSubmitting}
-                  style={{
-                    marginTop: '3px',
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer'
-                  }}
+                  className="device-type-checkbox"
                 />
-                <div style={{ flex: 1 }}>
-                  <div style={{
-                    fontWeight: '600',
-                    color: 'var(--theme-text-primary)',
-                    marginBottom: '5px'
-                  }}>
+                <div className="flex-1">
+                  <div className="font-semibold text-text-primary mb-1">
                     Lab Device
                   </div>
-                  <div style={{
-                    fontSize: '13px',
-                    color: 'var(--theme-text-secondary)',
-                    lineHeight: '1.5'
-                  }}>
+                  <div className="text-sm text-text-secondary leading-relaxed">
                     I understand that the lab supervisor shall monitor the lab devices to avoid any misuse or damage.
                   </div>
                 </div>
@@ -727,16 +551,12 @@ function SignaturePage() {
         </div>
 
         {/* Signature */}
-        <div className="premium-card" style={{ marginBottom: '30px' }}>
+        <div className="premium-card mb-8">
           <div className="card-header">
-            <h2 style={{ margin: 0, fontSize: '20px' }}>Digital Signature</h2>
+            <h2 className="text-xl font-semibold m-0">Digital Signature</h2>
           </div>
           <div className="card-body">
-            <p style={{
-              marginBottom: '15px',
-              color: 'var(--theme-text-secondary)',
-              fontSize: '14px'
-            }}>
+            <p className="mb-4 text-text-secondary text-sm">
               Please sign in the box below to acknowledge receipt of the assigned assets.
             </p>
             <div className="signature-canvas-wrapper">
@@ -760,26 +580,16 @@ function SignaturePage() {
         </div>
 
         {/* Action Buttons */}
-        <div style={{
-          display: 'flex',
-          gap: '15px',
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}>
+        <div className="flex gap-4 justify-center flex-wrap">
           <button
             type="button"
-            className="btn-premium"
+            className="btn-premium min-w-48 flex items-center justify-center gap-2"
             onClick={handleSubmitSignature}
             disabled={isSubmitting || !isFormValid()}
-            style={{ minWidth: '200px' }}
           >
             {isSubmitting ? (
               <>
-                <span className="spinner-premium" style={{
-                  width: '16px',
-                  height: '16px',
-                  marginRight: '8px'
-                }}></span>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 Submitting...
               </>
             ) : (
@@ -790,10 +600,9 @@ function SignaturePage() {
           </button>
           <button
             type="button"
-            className="btn-secondary"
+            className="btn-secondary min-w-48 flex items-center justify-center gap-2"
             onClick={() => setShowDisputeModal(true)}
             disabled={isSubmitting}
-            style={{ minWidth: '200px' }}
           >
             <i className="fas fa-exclamation-triangle"></i> Dispute Assets
           </button>
@@ -802,52 +611,40 @@ function SignaturePage() {
         {/* Dispute Modal */}
         {showDisputeModal && (
           <div className="modal-overlay animate-fadeIn" onClick={() => !isSubmitting && setShowDisputeModal(false)}>
-            <div className="modal-content animate-scaleIn" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content animate-scaleIn max-w-md" onClick={(e) => e.stopPropagation()}>
               <div className="card-header">
-                <h2 style={{ margin: 0, fontSize: '20px' }}>Dispute Assets</h2>
+                <h2 className="text-xl font-semibold m-0">Dispute Assets</h2>
               </div>
               <div className="card-body">
-                <p style={{
-                  marginBottom: '15px',
-                  color: 'var(--theme-text-secondary)'
-                }}>
+                <p className="mb-4 text-text-secondary">
                   Please explain why you are disputing the assigned assets. The administrator will review your concern and contact you.
                 </p>
-                <label htmlFor="disputeReason" style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-primary)'
-                }}>
-                  Dispute Reason <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                <label htmlFor="disputeReason" className="block mb-2 text-sm font-medium text-text-primary">
+                  Dispute Reason <span className="text-danger">*</span>
                 </label>
                 <textarea
                   id="disputeReason"
-                  className="input-premium"
+                  className="input-premium resize-y"
                   value={disputeReason}
                   onChange={(e) => setDisputeReason(e.target.value)}
                   placeholder="Enter your reason for disputing..."
                   rows="5"
                   disabled={isSubmitting}
-                  style={{ resize: 'vertical' }}
                 ></textarea>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <div className="flex gap-3 mt-5">
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary flex-1"
                     onClick={() => setShowDisputeModal(false)}
                     disabled={isSubmitting}
-                    style={{ flex: 1 }}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    className="btn-premium"
+                    className="btn-premium flex-1"
                     onClick={handleSubmitDispute}
                     disabled={isSubmitting || !disputeReason.trim()}
-                    style={{ flex: 1 }}
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Dispute'}
                   </button>
@@ -860,28 +657,18 @@ function SignaturePage() {
         {/* Add Location Modal */}
         {showAddLocationModal && (
           <div className="modal-overlay animate-fadeIn" onClick={() => !isAddingLocation && setShowAddLocationModal(false)}>
-            <div className="modal-content animate-scaleIn" style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content animate-scaleIn max-w-sm" onClick={(e) => e.stopPropagation()}>
               <div className="card-header">
-                <h2 style={{ margin: 0, fontSize: '20px' }}>
+                <h2 className="text-xl font-semibold m-0">
                   Add New {addLocationCategory === 'building' ? 'Building' : addLocationCategory === 'floor' ? 'Floor' : 'Section'}
                 </h2>
               </div>
               <div className="card-body">
-                <p style={{
-                  marginBottom: '15px',
-                  color: 'var(--theme-text-secondary)',
-                  fontSize: '14px'
-                }}>
+                <p className="mb-4 text-text-secondary text-sm">
                   Enter a new {addLocationCategory} option. It will be available for future use.
                 </p>
-                <label htmlFor="newLocationValue" style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'var(--theme-text-primary)'
-                }}>
-                  {addLocationCategory === 'building' ? 'Building Name' : addLocationCategory === 'floor' ? 'Floor Name' : 'Section Name'} <span style={{ color: 'var(--theme-danger)' }}>*</span>
+                <label htmlFor="newLocationValue" className="block mb-2 text-sm font-medium text-text-primary">
+                  {addLocationCategory === 'building' ? 'Building Name' : addLocationCategory === 'floor' ? 'Floor Name' : 'Section Name'} <span className="text-danger">*</span>
                 </label>
                 <input
                   id="newLocationValue"
@@ -898,30 +685,24 @@ function SignaturePage() {
                   }}
                   autoFocus
                 />
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <div className="flex gap-3 mt-5">
                   <button
                     type="button"
-                    className="btn-secondary"
+                    className="btn-secondary flex-1"
                     onClick={() => setShowAddLocationModal(false)}
                     disabled={isAddingLocation}
-                    style={{ flex: 1 }}
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    className="btn-premium"
+                    className="btn-premium flex-1 flex items-center justify-center gap-2"
                     onClick={handleAddLocation}
                     disabled={isAddingLocation || !newLocationValue.trim()}
-                    style={{ flex: 1 }}
                   >
                     {isAddingLocation ? (
                       <>
-                        <span className="spinner-premium" style={{
-                          width: '14px',
-                          height: '14px',
-                          marginRight: '6px'
-                        }}></span>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         Adding...
                       </>
                     ) : (

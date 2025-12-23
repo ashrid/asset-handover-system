@@ -9,6 +9,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const OTP_EXPIRY_MINUTES = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
 const MAX_OTP_REQUESTS = isProduction ? 5 : 20; // Dev-friendly: 20 in dev, 5 in prod
 const RATE_LIMIT_WINDOW_MINUTES = 15;
+const MAX_FAILED_ATTEMPTS = 3; // Invalidate OTP after 3 failed attempts
 
 /**
  * Generate a 6-digit numeric OTP
@@ -39,39 +40,64 @@ export function createOTP(userId, ipAddress = null, userAgent = null) {
 
 /**
  * Verify an OTP code for a user
- * Returns true if valid, false otherwise
- * Marks OTP as used and invalidates other unused OTPs
+ * Returns { valid: true } if valid
+ * Returns { valid: false, reason: string } if invalid
+ * Tracks failed attempts and invalidates OTP after MAX_FAILED_ATTEMPTS
  */
 export function verifyOTP(userId, code) {
   const now = new Date().toISOString();
 
-  // Find valid OTP
-  const stmt = db.prepare(`
+  // Find the most recent unused OTP for this user (regardless of code match)
+  const latestOtpStmt = db.prepare(`
     SELECT * FROM otp_codes
-    WHERE user_id = ? AND code = ? AND used = 0 AND expires_at > ?
+    WHERE user_id = ? AND used = 0 AND expires_at > ?
     ORDER BY created_at DESC
     LIMIT 1
   `);
 
-  const otp = stmt.get(userId, code, now);
+  const latestOtp = latestOtpStmt.get(userId, now);
 
-  if (!otp) {
-    logger.warn({ userId }, 'Invalid or expired OTP attempt');
-    return false;
+  // No valid OTP exists
+  if (!latestOtp) {
+    logger.warn({ userId }, 'No valid OTP found for user');
+    return { valid: false, reason: 'expired' };
   }
 
-  // Mark OTP as used
-  const updateStmt = db.prepare(`UPDATE otp_codes SET used = 1 WHERE id = ?`);
-  updateStmt.run(otp.id);
+  // Check if too many failed attempts
+  const failedAttempts = latestOtp.failed_attempts || 0;
+  if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+    // Invalidate this OTP
+    db.prepare(`UPDATE otp_codes SET used = 1 WHERE id = ?`).run(latestOtp.id);
+    logger.warn({ userId, failedAttempts }, 'OTP invalidated due to too many failed attempts');
+    return { valid: false, reason: 'max_attempts' };
+  }
+
+  // Check if code matches
+  if (latestOtp.code !== code) {
+    // Increment failed attempts
+    const newFailedAttempts = failedAttempts + 1;
+    db.prepare(`UPDATE otp_codes SET failed_attempts = ? WHERE id = ?`).run(newFailedAttempts, latestOtp.id);
+
+    const attemptsRemaining = MAX_FAILED_ATTEMPTS - newFailedAttempts;
+    logger.warn({ userId, failedAttempts: newFailedAttempts, attemptsRemaining }, 'Invalid OTP code attempt');
+
+    if (newFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+      // Invalidate after max attempts reached
+      db.prepare(`UPDATE otp_codes SET used = 1 WHERE id = ?`).run(latestOtp.id);
+      return { valid: false, reason: 'max_attempts' };
+    }
+
+    return { valid: false, reason: 'invalid_code', attemptsRemaining };
+  }
+
+  // Code matches - mark as used
+  db.prepare(`UPDATE otp_codes SET used = 1 WHERE id = ?`).run(latestOtp.id);
 
   // Invalidate all other unused OTPs for this user (security measure)
-  const invalidateStmt = db.prepare(`
-    UPDATE otp_codes SET used = 1 WHERE user_id = ? AND used = 0
-  `);
-  invalidateStmt.run(userId);
+  db.prepare(`UPDATE otp_codes SET used = 1 WHERE user_id = ? AND used = 0`).run(userId);
 
-  logger.info({ userId, otpId: otp.id }, 'OTP verified successfully');
-  return true;
+  logger.info({ userId, otpId: latestOtp.id }, 'OTP verified successfully');
+  return { valid: true };
 }
 
 /**

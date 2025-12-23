@@ -537,9 +537,15 @@ export async function sendOTPEmail({ email, employeeName, otpCode, expiresAt }) 
 
     logEmailSent('otp', email, true);
 
-    // For development, log the preview URL
+    // For development, log the preview URL and OTP code
     if (!process.env.SMTP_HOST) {
-      logger.debug({ previewUrl: nodemailer.getTestMessageUrl(info) }, 'OTP email preview available');
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+      logger.info({ previewUrl }, 'OTP email preview available');
+      // Log OTP code directly for development convenience
+      console.log('\n📧 ═══════════════════════════════════════════════════');
+      console.log(`   OTP CODE: ${otpCode}`);
+      console.log(`   Preview:  ${previewUrl}`);
+      console.log('═══════════════════════════════════════════════════════\n');
     }
 
     return info;

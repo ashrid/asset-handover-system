@@ -481,7 +481,7 @@ function AssignmentsPage() {
                               <span>Edit Assets</span>
                             </button>
                           )}
-                          {assignment.pdf_sent && !assignment.is_signed && !assignment.is_disputed && (
+                          {!!assignment.pdf_sent && !assignment.is_signed && !assignment.is_disputed && (
                             <button
                               className="btn-secondary inline-flex items-center gap-2 text-sm py-2 px-4"
                               onClick={() => handleResendEmail(assignment.id, assignment.employee_name)}
@@ -491,7 +491,7 @@ function AssignmentsPage() {
                               <span>Resend</span>
                             </button>
                           )}
-                          {assignment.is_signed && !assignment.is_disputed && !assignment.transfer_status && (
+                          {!!assignment.is_signed && !assignment.is_disputed && !assignment.transfer_status && (
                             <button
                               className="inline-flex items-center gap-2 text-sm py-2 px-4 rounded-lg font-medium transition-all duration-200"
                               style={{
@@ -723,7 +723,7 @@ function AssignmentsPage() {
                     <span>Edit Assets</span>
                   </button>
                 )}
-                {selectedAssignment.is_signed && !selectedAssignment.is_disputed && !selectedAssignment.transfer_status && (
+                {!!selectedAssignment.is_signed && !selectedAssignment.is_disputed && !selectedAssignment.transfer_status && (
                   <button
                     className="inline-flex items-center gap-2 py-2 px-4 rounded-lg font-medium transition-all duration-200"
                     style={{
@@ -741,7 +741,7 @@ function AssignmentsPage() {
                     <span>Transfer Assets</span>
                   </button>
                 )}
-                {selectedAssignment.pdf_sent && !selectedAssignment.is_signed && !selectedAssignment.is_disputed && (
+                {!!selectedAssignment.pdf_sent && !selectedAssignment.is_signed && !selectedAssignment.is_disputed && (
                   <button
                     className="btn-secondary inline-flex items-center gap-2"
                     onClick={() => {
