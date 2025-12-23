@@ -370,7 +370,7 @@ Edit `server/services/emailService.js`:
 2. Add new theme object to `themes` export with all color properties
 3. Theme automatically appears in ThemeSwitcher dropdown
 4. All CSS using `var(--theme-*)` variables will use new theme colors
-5. See THEMES.md for detailed color property documentation
+5. See theme definitions in `src/themes.js` for color properties
 
 ### Modifying Reminder Logic
 Edit `server/services/reminderService.js`:
@@ -683,7 +683,7 @@ This project uses the latest stable versions as of December 2024:
 ### Completed Technical Debt
 - **Observability**: Pino logging, Sentry error tracking, health checks
 - **Security Hardening**: Helmet headers, express-validator, CSRF protection
-- **Testing Infrastructure**: Vitest (36 tests), Playwright E2E tests
+- **Testing Infrastructure**: Vitest (55 tests), Playwright E2E tests
 - **Authentication**: OTP login, JWT + refresh tokens, RBAC
 
 ### API Route Protection (Phase 5.2)

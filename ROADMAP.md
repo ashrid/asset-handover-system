@@ -1,8 +1,8 @@
 # Project Roadmap
 
 **Project:** Asset Handover Management System - Ajman University
-**Last Updated:** 2025-12-17
-**Current Phase:** Phase 5.1 Complete (OTP-Based Authentication)
+**Last Updated:** 2025-12-23
+**Current Phase:** Phase 5.2 Complete (API Route Protection)
 
 ---
 
@@ -746,20 +746,26 @@ node server/seeds/createAdmin.js 1
 
 ## 🎯 Phase 5: Advanced Features (Continued)
 
-**Status:** 🚧 In Progress
+**Status:** ✅ Phase 5.2 Complete
 **Priority:** Medium
-**Estimated Duration:** 3-4 weeks
+**Next:** Phase 5.4 (Asset History & Audit Log)
 
 ### 5.2 Protect Existing API Routes
 **Priority:** High
-**Status:** 📋 Planned
+**Status:** ✅ Complete
+**Completion Date:** 2025-12-23
 
-**Features:**
-- [ ] Apply `authenticateToken` to assets routes
-- [ ] Apply `authenticateToken` to employees routes
-- [ ] Apply `authenticateToken` to handover routes
-- [ ] Apply `requireRole('admin', 'staff')` where needed
-- [ ] Update frontend to use `authFetch` for all API calls
+**Features Implemented:**
+- ✅ Apply `authenticateToken` to assets routes (requireStaff)
+- ✅ Apply `authenticateToken` to employees routes (requireStaff)
+- ✅ Apply `authenticateToken` to handover routes (mixed protection)
+- ✅ Apply `authenticateToken` to dashboard routes (requireAuth)
+- ✅ Apply `authenticateToken` to locations routes (requireAuth + requireStaff for mutations)
+- ✅ Apply `requireAdmin` to reminders trigger endpoint
+- ✅ Preserve public access to signature endpoints
+- ✅ Add comprehensive auth protection tests (19 tests)
+- ✅ Fix OTP paste issue (stale closure bug)
+- ✅ Add OTP failed attempts tracking (max 3 attempts)
 
 ---
 
@@ -1147,7 +1153,7 @@ npm run playwright:install  # Install browser
 | 4.0.0 | Dec 2025 | 4 | UI Enhancements Complete |
 | 4.5.0 | Dec 2025 | 4.5 | Asset Transfer Feature |
 | 5.1.0 | Dec 2025 | 5.1 | OTP-Based Authentication |
-| 5.2.0 | TBD | 5.2 | Protect Existing Routes |
+| 5.2.0 | Dec 2025 | 5.2 | API Route Protection Complete |
 
 ---
 
@@ -1173,4 +1179,4 @@ npm run playwright:install  # Install browser
 
 ---
 
-**Next Actions:** Phase 5.2 complete. Consider Phase 5.4 (Asset History & Audit Log) or Phase 6 (Reporting & Analytics Dashboard).
+**Next Actions:** Phase 5.2 complete (API Route Protection, OTP fixes, 55 tests passing). Consider Phase 5.4 (Asset History & Audit Log) or Phase 6 (Reporting & Analytics Dashboard).

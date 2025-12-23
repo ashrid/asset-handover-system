@@ -1,56 +1,54 @@
 # Asset Handover Management System
 
-A web application for Ajman University to manage asset assignments to employees with automated PDF generation and email notifications.
+A full-stack web application for Ajman University to manage asset assignments to employees with automated PDF generation, email notifications, digital signatures, role-based authentication, and automated reminders.
 
 ## Features
 
-- **Asset Management**: Create, read, update, and delete assets with comprehensive fields including asset code, type, description, model, serial number, categories, locations, and more
+### Core Features
+- **Asset Management**: Full CRUD operations with 20+ fields including asset code, type, categories, locations, and more
 - **Employee Management**: Track employee information including name, ID, email, and office/college
-- **Asset Handover**: Assign multiple assets to employees and automatically send handover confirmation emails with PDF attachments
-- **PDF Generation**: Automatically generates professional PDF documents containing:
-  - Employee information
-  - Declaration statement
-  - Asset table with selected columns (LPO column shown only if applicable)
-  - Signature field
-- **Email Notifications**: Sends formatted emails with PDF attachments to employees
-- **Assignment Tracking**: View all asset assignments with status and details
-- **Edit Assets**: Modify assigned assets in unsigned assignments with optional email notification
-- **Automated Reminders**: Weekly email reminders for unsigned assignments (configurable schedule)
-- **Admin Notifications**: Automatically sends signed PDFs and dispute alerts to admin email
+- **Excel Import**: Bulk import assets from .xls/.xlsx files
+- **Asset Handover**: Assign multiple assets to employees with automated PDF generation and email notifications
+- **Digital Signature**: Public signing page with canvas signature capture (no login required)
+- **PDF Generation**: Professional PDF documents with employee info, asset table, and embedded signatures
+
+### Authentication & Security (Phase 5)
+- **OTP-Based Login**: Passwordless authentication via Employee ID + 6-digit OTP sent to email
+- **JWT + Refresh Tokens**: Access tokens (15 min) + refresh tokens (7 days, httpOnly cookie)
+- **Role-Based Access Control**: Three roles with different permissions:
+  | Role | Capabilities |
+  |------|-------------|
+  | **Admin** | Full access including user management |
+  | **Staff** | Manage assets, employees, and assignments |
+  | **Viewer** | Read-only access to dashboard and assignments |
+- **Protected API Routes**: All endpoints secured with appropriate authentication and authorization
+
+### Admin Features
+- **User Management**: Create, update, and deactivate user accounts (admin only)
+- **Automated Reminders**: Weekly email reminders for unsigned assignments (max 4 reminders)
+- **Admin Notifications**: Automatic copy of signed PDFs and dispute alerts
+- **Resend Email**: Resend signing links for unsigned assignments
+- **Edit Assets**: Modify assigned assets in unsigned assignments
+- **Asset Transfer**: Transfer assets between employees with full tracking
+
+### Additional Features
 - **Backup Email Support**: Secondary email for senior sign-off when employee is unavailable
-- **Multi-Theme System**: Choose from 8 professional color themes with instant switching and persistent preferences
-
-## Theme System
-
-The application includes a flexible theme system with 8 professionally designed color schemes:
-
-1. **Ajman Blue** (Default) - Professional corporate blue
-2. **AU Official Brand** ⭐ (RECOMMENDED) - Official Ajman University colors (Orange #F29F00, Light Blue #39A9DC, Yellow #F6C900)
-3. **Emerald Green** - Fresh and natural
-4. **Royal Purple** - Sophisticated and creative
-5. **Sunset Orange** - Energetic and warm
-6. **Ocean Teal** - Modern and balanced
-7. **Crimson Red** - Bold and powerful
-8. **Midnight Black** - Sleek and minimalist
-
-**How to Switch Themes**:
-- Click the "Theme" button in the top-right corner of the header
-- Select your preferred theme from the dropdown
-- Your choice is automatically saved and persists across sessions
-
-See [THEMES.md](THEMES.md) for detailed theme documentation.
+- **Dispute Handling**: Employees can dispute assignments with reason tracking
+- **Multi-Theme System**: 8 professional color themes with instant switching
 
 ## Tech Stack
 
-- **Frontend**: React 18 + Vite
-- **Backend**: Node.js + Express
+- **Frontend**: React 19 + Vite 6
+- **Backend**: Node.js + Express 5
 - **Database**: SQLite (better-sqlite3)
 - **PDF Generation**: PDFKit
 - **Email**: Nodemailer
+- **Authentication**: JWT (jsonwebtoken)
+- **Testing**: Vitest + Playwright
 
 ## Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 20+ and npm
 
 ## Installation
 
@@ -65,175 +63,231 @@ cd asset-signing-confirm
 npm install
 ```
 
-3. Configure email settings (optional for development):
+3. Configure environment (optional for development):
 ```bash
 cp .env.example .env
-# Edit .env with your SMTP settings for production
-# Leave empty for development (uses Ethereal test email service)
+# Edit .env with your settings
+```
+
+4. Run database migrations:
+```bash
+node server/migrations/006_add_auth_tables.js
+node server/migrations/007_add_otp_failed_attempts.js
+```
+
+5. Create initial admin user:
+```bash
+# List available employees
+node server/seeds/createAdmin.js
+
+# Create admin from employee ID
+node server/seeds/createAdmin.js 1
 ```
 
 ## Development
 
-Start both frontend and backend in development mode:
+Start both frontend and backend:
 ```bash
 npm run dev
 ```
 
-This will start:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:3001
 
-The frontend proxies API requests to the backend automatically.
+### Other Commands
 
-## Production Build
-
-Build the frontend for production:
 ```bash
-npm run build
+npm run dev:client    # Frontend only
+npm run dev:server    # Backend only
+npm run build         # Production build
+npm start             # Production server
+npm test              # Run all tests
+npm run test:e2e      # Run E2E tests
 ```
 
-Start the production server:
-```bash
-npm start
-```
+## Environment Configuration
 
-## Email Configuration
+### Required for Production
+```env
+# JWT Secrets (generate secure random strings!)
+JWT_SECRET=your-super-secret-jwt-key-change-in-production
+JWT_REFRESH_SECRET=your-refresh-secret-key-change-in-production
 
-### Development
-By default, the app uses [Ethereal Email](https://ethereal.email/) for testing emails in development. Email preview URLs are logged to the console.
-
-### Production
-Set these environment variables in `.env`:
-```
+# SMTP Email Configuration
 SMTP_HOST=smtp.yourdomain.com
 SMTP_PORT=587
-SMTP_SECURE=false
 SMTP_USER=your-email@yourdomain.com
 SMTP_PASS=your-password
-EMAIL_FROM="Ajman University Asset Management <assets@ajman.ac.ae>"
+EMAIL_FROM="Asset Management <assets@ajman.ac.ae>"
+
+# Admin Email (receives signed PDFs and dispute notifications)
 ADMIN_EMAIL=store@ajman.ac.ae
+
+# Base URL (used in signing links)
 BASE_URL=https://yourdomain.com
 ```
 
-## Automated Reminders
-
-The system automatically sends reminder emails for unsigned assignments:
-- **Schedule**: Daily at 9:00 AM (configurable via `REMINDER_CRON_SCHEDULE`)
-- **Frequency**: Every 7 days
-- **Maximum**: 4 reminders (28 days total)
-- **Stops When**: Assignment is signed, disputed, or token expires
-
-### Configuration
+### Optional Configuration
 ```env
-REMINDER_CRON_SCHEDULE=0 9 * * *  # Daily at 9 AM
-TZ=Asia/Dubai                      # Timezone
+PORT=3001                           # Server port
+REMINDER_CRON_SCHEDULE=0 9 * * *    # Daily at 9 AM
+TZ=Asia/Dubai                       # Timezone
+LOG_LEVEL=info                      # Logging level
+OTP_EXPIRY_MINUTES=10               # OTP expiration
 ```
 
-### Manual Trigger (Testing)
-```bash
-curl -X POST http://localhost:3001/api/reminders/trigger
-```
-
-## Edit Assets Feature
-
-Admins can modify assigned assets in unsigned assignments:
-1. Navigate to "View Assignments"
-2. Click "Edit Assets" button (only visible for unsigned assignments)
-3. Add or remove assets from the assignment
-4. Optionally send updated email notification
-5. Click "Save Changes"
-
-**Note**: Editing preserves the original signing token/link.
-
-## Database
-
-The SQLite database (`server/assets.db`) is automatically created on first run with the following tables:
-- `assets`: Store all asset information
-- `employees`: Store employee details
-- `asset_assignments`: Track asset handover assignments
-- `assignment_items`: Link assets to assignments (many-to-many)
+### Development
+- Leave SMTP settings empty to use Ethereal test email service
+- Email preview URLs are logged to the console
 
 ## API Endpoints
 
-### Assets
-- `GET /api/assets` - Get all assets
-- `GET /api/assets/:id` - Get single asset
-- `POST /api/assets` - Create new asset
-- `PUT /api/assets/:id` - Update asset
-- `DELETE /api/assets/:id` - Delete asset
+### Authentication (`/api/auth`)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/request-otp` | Public | Send OTP to employee email |
+| POST | `/verify-otp` | Public | Verify OTP, get tokens |
+| POST | `/refresh` | Cookie | Refresh access token |
+| POST | `/logout` | Required | Logout current session |
+| POST | `/logout-all` | Required | Logout all devices |
+| GET | `/me` | Required | Get current user info |
 
-### Employees
-- `GET /api/employees` - Get all employees
-- `GET /api/employees/:id` - Get single employee
-- `POST /api/employees` - Create new employee
-- `PUT /api/employees/:id` - Update employee
-- `DELETE /api/employees/:id` - Delete employee
+### Users (`/api/users`) - Admin Only
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | List all users |
+| POST | `/` | Create user (link employee) |
+| PUT | `/:id` | Update user role/status |
+| DELETE | `/:id` | Deactivate user |
+| GET | `/available/employees` | Get unlinked employees |
 
-### Handover
-- `POST /api/handover` - Create assignment and send handover email
-- `GET /api/handover/assignments` - Get all assignments
-- `GET /api/handover/assignments/:id` - Get assignment details
-- `PUT /api/handover/assignments/:id/assets` - Edit assets in assignment
-- `POST /api/handover/resend/:id` - Resend signing email
-- `DELETE /api/handover/assignments/:id` - Delete assignment
-- `GET /api/handover/sign/:token` - Get assignment by signing token (public)
-- `POST /api/handover/submit-signature/:token` - Submit signature (public)
-- `POST /api/handover/dispute/:token` - Submit dispute (public)
+### Assets (`/api/assets`) - Staff/Admin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Get all assets |
+| GET | `/:id` | Get single asset |
+| POST | `/` | Create asset |
+| PUT | `/:id` | Update asset |
+| DELETE | `/:id` | Delete asset |
 
-### Reminders
-- `POST /api/reminders/trigger` - Manually trigger reminder check
+### Employees (`/api/employees`) - Staff/Admin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Get all employees |
+| GET | `/:id` | Get single employee |
+| POST | `/` | Create employee |
+| PUT | `/:id` | Update employee |
+| DELETE | `/:id` | Delete employee |
+
+### Handover (`/api/handover`)
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/` | Staff/Admin | Create assignment |
+| GET | `/assignments` | Required | Get all assignments |
+| GET | `/assignments/:id` | Required | Get assignment details |
+| PUT | `/assignments/:id/assets` | Staff/Admin | Edit assets |
+| DELETE | `/assignments/:id` | Staff/Admin | Delete assignment |
+| POST | `/resend/:id` | Staff/Admin | Resend signing email |
+| POST | `/transfer/:id` | Staff/Admin | Transfer assets |
+| GET | `/sign/:token` | **Public** | Get signing page |
+| POST | `/submit-signature/:token` | **Public** | Submit signature |
+| POST | `/dispute/:token` | **Public** | Submit dispute |
+
+### Dashboard (`/api/dashboard`) - Authenticated
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/stats` | Core metrics |
+| GET | `/activity` | Recent activity |
+| GET | `/charts` | Chart data |
+
+### Other
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/locations/options` | Required | Location dropdowns |
+| POST | `/api/reminders/trigger` | Admin | Manual reminder trigger |
+| GET | `/api/health` | Public | Health check |
+
+## Theme System
+
+8 professional color themes with instant switching:
+
+1. **Ajman Blue** (Default) - Professional corporate blue
+2. **AU Official Brand** - Official Ajman University colors
+3. **Emerald Green** - Fresh and natural
+4. **Royal Purple** - Sophisticated and creative
+5. **Sunset Orange** - Energetic and warm
+6. **Ocean Teal** - Modern and balanced
+7. **Crimson Red** - Bold and powerful
+8. **Midnight Black** - Sleek and minimalist
+
+**How to Switch**: Click "Theme" button in header, select from dropdown. Choice persists across sessions.
 
 ## Project Structure
 
 ```
 asset-signing-confirm/
 ├── server/
-│   ├── index.js              # Express server setup
-│   ├── database.js           # Database initialization
+│   ├── index.js              # Express server
+│   ├── database.js           # SQLite initialization
 │   ├── routes/
-│   │   ├── assets.js         # Asset CRUD endpoints
-│   │   ├── employees.js      # Employee CRUD endpoints
-│   │   └── handover.js       # Handover and assignment endpoints
-│   └── services/
-│       ├── pdfGenerator.js   # PDF generation logic
-│       └── emailService.js   # Email sending logic
+│   │   ├── auth.js           # Authentication endpoints
+│   │   ├── users.js          # User management (admin)
+│   │   ├── assets.js         # Asset CRUD
+│   │   ├── employees.js      # Employee CRUD
+│   │   ├── handover.js       # Handover & assignments
+│   │   ├── dashboard.js      # Dashboard analytics
+│   │   └── locations.js      # Location options
+│   ├── services/
+│   │   ├── otpService.js     # OTP management
+│   │   ├── tokenService.js   # JWT management
+│   │   ├── pdfGenerator.js   # PDF generation
+│   │   ├── emailService.js   # Email handling
+│   │   └── reminderService.js# Automated reminders
+│   ├── middleware/
+│   │   ├── auth.js           # Authentication middleware
+│   │   ├── validation.js     # Input validation
+│   │   └── security.js       # Security headers
+│   └── migrations/           # Database migrations
 ├── src/
-│   ├── main.jsx              # React entry point
-│   ├── App.jsx               # Main app component
-│   ├── index.css             # Global styles
+│   ├── main.jsx              # React entry
+│   ├── App.jsx               # Main app with routing
+│   ├── contexts/
+│   │   └── AuthContext.jsx   # Auth state management
 │   ├── components/
-│   │   ├── Header.jsx        # Navigation header
-│   │   ├── AssetForm.jsx     # Asset creation/edit form
-│   │   └── AssetList.jsx     # Asset table display
+│   │   ├── Header.jsx        # Navigation
+│   │   ├── ProtectedRoute.jsx# Route protection
+│   │   └── ...               # Other components
 │   └── pages/
-│       ├── AssetsPage.jsx    # Asset management page
-│       ├── HandoverPage.jsx  # Asset handover page
-│       └── AssignmentsPage.jsx # View assignments page
-├── package.json
-├── vite.config.js
-└── index.html
+│       ├── LoginPage.jsx     # OTP login
+│       ├── Dashboard.jsx     # Analytics
+│       ├── AssetsPage.jsx    # Asset management
+│       ├── UserManagementPage.jsx # User admin
+│       └── ...               # Other pages
+├── tests/
+│   ├── unit/                 # Unit tests
+│   ├── integration/          # API tests
+│   └── e2e/                  # Playwright tests
+└── docs/                     # Documentation
 ```
 
-## Usage
+## Testing
 
-### Adding Assets
-1. Navigate to "Manage Assets"
-2. Click "Add New Asset"
-3. Fill in required fields (Asset Code, Asset Type)
-4. Add optional fields as needed
-5. Click "Create Asset"
+```bash
+npm test                    # All tests (55 passing)
+npm run test:watch          # Watch mode
+npm run test:coverage       # Coverage report
+npm run test:e2e            # E2E tests (Playwright)
+```
 
-### Creating Asset Handover
-1. Navigate to "Asset Handover"
-2. Enter employee information (Name and Email are required)
-3. Select assets to assign
-4. Click "Send Handover Email"
-5. Employee receives email with PDF attachment
+## Security Features
 
-### Viewing Assignments
-1. Navigate to "View Assignments"
-2. See all asset handovers with status
-3. Click "View Details" to see assignment information
+- **OTP Rate Limiting**: 5 requests/15 min (production), 20 (development)
+- **Failed OTP Attempts**: OTP invalidated after 3 wrong attempts
+- **JWT Expiration**: Access tokens (15 min), refresh tokens (7 days)
+- **Security Headers**: Helmet (CSP, HSTS, XSS protection)
+- **Input Validation**: express-validator on all endpoints
+- **CSRF Protection**: Content-Type + Origin validation
+- **SQL Injection Prevention**: Parameterized queries
 
 ## License
 
