@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useAuth } from '../contexts/AuthContext'
 import Skeleton from '../components/Skeleton'
 import EditAssetsModal from '../components/EditAssetsModal'
 import TransferModal from '../components/TransferModal'
@@ -12,6 +13,7 @@ function AssignmentsPage() {
   const [editingAssignment, setEditingAssignment] = useState(null)
   const [transferringAssignment, setTransferringAssignment] = useState(null)
   const { addToast } = useToast()
+  const { authFetch } = useAuth()
   const [searchFilter, setSearchFilter] = useState('')
   const [filters, setFilters] = useState({
     statuses: [],
@@ -53,11 +55,16 @@ function AssignmentsPage() {
 
   const fetchAssignments = async () => {
     try {
-      const response = await fetch('/api/handover/assignments')
+      const response = await authFetch('/api/handover/assignments')
+      if (!response.ok) {
+        throw new Error('Failed to fetch assignments')
+      }
       const data = await response.json()
-      setAssignments(data)
+      // Ensure data is an array before setting
+      setAssignments(Array.isArray(data) ? data : [])
     } catch (error) {
-      addToast('error', 'Failed to fetch assignments')
+      addToast('error', error.message || 'Failed to fetch assignments')
+      setAssignments([])
     } finally {
       setLoading(false)
     }
@@ -65,11 +72,14 @@ function AssignmentsPage() {
 
   const handleViewDetails = async (assignmentId) => {
     try {
-      const response = await fetch(`/api/handover/assignments/${assignmentId}`)
+      const response = await authFetch(`/api/handover/assignments/${assignmentId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch assignment details')
+      }
       const data = await response.json()
       setSelectedAssignment(data)
     } catch (error) {
-      addToast('error', 'Failed to fetch assignment details')
+      addToast('error', error.message || 'Failed to fetch assignment details')
     }
   }
 
@@ -79,7 +89,7 @@ function AssignmentsPage() {
     }
 
     try {
-      const response = await fetch(`/api/handover/assignments/${assignmentId}`, {
+      const response = await authFetch(`/api/handover/assignments/${assignmentId}`, {
         method: 'DELETE'
       })
 
@@ -108,7 +118,7 @@ function AssignmentsPage() {
     }
 
     try {
-      const response = await fetch(`/api/handover/resend/${assignmentId}`, {
+      const response = await authFetch(`/api/handover/resend/${assignmentId}`, {
         method: 'POST'
       })
 
@@ -132,11 +142,14 @@ function AssignmentsPage() {
 
   const handleEditAssets = async (assignmentId) => {
     try {
-      const response = await fetch(`/api/handover/assignments/${assignmentId}`)
+      const response = await authFetch(`/api/handover/assignments/${assignmentId}`)
+      if (!response.ok) {
+        throw new Error('Failed to load assignment for editing')
+      }
       const data = await response.json()
       setEditingAssignment(data)
     } catch (error) {
-      addToast('error', 'Failed to load assignment for editing')
+      addToast('error', error.message || 'Failed to load assignment for editing')
     }
   }
 
@@ -151,11 +164,14 @@ function AssignmentsPage() {
 
   const handleTransfer = async (assignmentId) => {
     try {
-      const response = await fetch(`/api/handover/assignments/${assignmentId}`)
+      const response = await authFetch(`/api/handover/assignments/${assignmentId}`)
+      if (!response.ok) {
+        throw new Error('Failed to load assignment for transfer')
+      }
       const data = await response.json()
       setTransferringAssignment(data)
     } catch (error) {
-      addToast('error', 'Failed to load assignment for transfer')
+      addToast('error', error.message || 'Failed to load assignment for transfer')
     }
   }
 

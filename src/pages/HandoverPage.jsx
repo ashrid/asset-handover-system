@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useAuth } from '../contexts/AuthContext'
 import Skeleton from '../components/Skeleton'
 
 function HandoverPage() {
@@ -8,6 +9,7 @@ function HandoverPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const { addToast } = useToast()
+  const { authFetch } = useAuth()
   const [searchFilter, setSearchFilter] = useState('')
   const [employeeData, setEmployeeData] = useState({
     employee_name: '',
@@ -23,11 +25,15 @@ function HandoverPage() {
 
   const fetchAssets = async () => {
     try {
-      const response = await fetch('/api/assets')
+      const response = await authFetch('/api/assets')
+      if (!response.ok) {
+        throw new Error('Failed to fetch assets')
+      }
       const data = await response.json()
-      setAssets(data)
+      setAssets(Array.isArray(data) ? data : [])
     } catch (error) {
-      addToast('error', 'Failed to fetch assets')
+      addToast('error', error.message || 'Failed to fetch assets')
+      setAssets([])
     } finally {
       setLoading(false)
     }
@@ -111,7 +117,7 @@ function HandoverPage() {
     setSending(true)
 
     try {
-      const response = await fetch('/api/handover', {
+      const response = await authFetch('/api/handover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

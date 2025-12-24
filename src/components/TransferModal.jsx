@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 function TransferModal({ assignment, onClose, onSuccess }) {
+  const { authFetch } = useAuth()
   const [selectedAssetIds, setSelectedAssetIds] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [notifyOriginal, setNotifyOriginal] = useState(false)
@@ -83,7 +85,7 @@ function TransferModal({ assignment, onClose, onSuccess }) {
 
     setSaving(true)
     try {
-      const response = await fetch(`/api/handover/transfer/${assignment.id}`, {
+      const response = await authFetch(`/api/handover/transfer/${assignment.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

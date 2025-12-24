@@ -3,13 +3,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 
-// OTP Input Component - Individual digit boxes
+// OTP Input Component - Individual digit boxes (no auto-submit)
 const OTPInput = ({ value, onChange, disabled }) => {
   const inputRefs = useRef([]);
   const digits = value.padEnd(6, '').split('');
 
   const handleChange = (index, e) => {
+    if (disabled) return;
     const val = e.target.value.replace(/\D/g, '');
+
+    // Handle multi-character input (paste into single field)
     if (val.length > 1) {
       const newValue = val.slice(0, 6);
       onChange(newValue);
@@ -40,11 +43,14 @@ const OTPInput = ({ value, onChange, disabled }) => {
   };
 
   const handlePaste = (e) => {
+    if (disabled) return;
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    onChange(pastedData);
-    const nextIndex = Math.min(pastedData.length, 5);
-    inputRefs.current[nextIndex]?.focus();
+    if (pastedData) {
+      onChange(pastedData);
+      const nextIndex = Math.min(pastedData.length, 5);
+      inputRefs.current[nextIndex]?.focus();
+    }
   };
 
   return (
@@ -101,26 +107,6 @@ const LoginPage = () => {
     }
   }, [countdown]);
 
-  // Auto-submit when 6 digits entered - use callback to avoid stale closure
-  useEffect(() => {
-    if (otpCode.length === 6 && step === 'otp' && !isLoading) {
-      // Use the current otpCode value directly in the API call
-      const submitOTP = async () => {
-        setIsLoading(true);
-        try {
-          await verifyOTP(employeeId.trim(), otpCode);
-          addToast('success', 'Welcome back!');
-          navigate(from, { replace: true });
-        } catch (err) {
-          addToast('error', err.message || 'Invalid code');
-          setOtpCode('');
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      submitOTP();
-    }
-  }, [otpCode, step, isLoading, employeeId, verifyOTP, addToast, navigate, from]);
 
   const handleRequestOTP = async (e) => {
     e?.preventDefault();
@@ -146,12 +132,15 @@ const LoginPage = () => {
 
   const handleVerifyOTP = async (e) => {
     e?.preventDefault();
-    if (otpCode.length !== 6) return;
+    if (otpCode.length !== 6 || isLoading) return;
 
     setIsLoading(true);
-
     try {
-      await verifyOTP(employeeId.trim(), otpCode);
+      const result = await verifyOTP(employeeId.trim(), otpCode);
+      // Check if call was blocked by AuthContext lock
+      if (result?.blocked) {
+        return;
+      }
       addToast('success', 'Welcome back!');
       navigate(from, { replace: true });
     } catch (err) {

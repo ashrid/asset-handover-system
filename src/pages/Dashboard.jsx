@@ -11,6 +11,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,7 +23,8 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 // Helper function to format relative time
@@ -133,7 +135,7 @@ const TimelineRow = ({ event }) => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { authFetch, isAuthenticated } = useAuth();
+  const { authFetch } = useAuth();
 
   const [stats, setStats] = useState(null);
   const [chartsData, setChartsData] = useState(null);
@@ -150,14 +152,12 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
 
-      const fetchFn = isAuthenticated ? authFetch : fetch;
-
       const [statsRes, chartsRes, pendingRes, transfersRes, timelineRes] = await Promise.all([
-        fetchFn('/api/dashboard/stats'),
-        fetchFn('/api/dashboard/charts'),
-        fetchFn('/api/dashboard/pending-signatures'),
-        fetchFn('/api/dashboard/recent-transfers'),
-        fetchFn('/api/dashboard/timeline')
+        authFetch('/api/dashboard/stats'),
+        authFetch('/api/dashboard/charts'),
+        authFetch('/api/dashboard/pending-signatures'),
+        authFetch('/api/dashboard/recent-transfers'),
+        authFetch('/api/dashboard/timeline')
       ]);
 
       if (!statsRes.ok) throw new Error('Failed to fetch stats');
@@ -172,15 +172,15 @@ const Dashboard = () => {
 
       setStats(statsData);
       setChartsData(chartsData);
-      setPendingSignatures(pendingData);
-      setRecentTransfers(transfersData);
-      setTimeline(timelineData);
+      setPendingSignatures(Array.isArray(pendingData) ? pendingData : []);
+      setRecentTransfers(Array.isArray(transfersData) ? transfersData : []);
+      setTimeline(Array.isArray(timelineData) ? timelineData : []);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [authFetch, isAuthenticated]);
+  }, [authFetch]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -191,8 +191,7 @@ const Dashboard = () => {
       setReminderLoading(assignmentId);
       setMessage(null);
 
-      const fetchFn = isAuthenticated ? authFetch : fetch;
-      const response = await fetchFn(`/api/handover/resend/${assignmentId}`, {
+      const response = await authFetch(`/api/handover/resend/${assignmentId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -204,9 +203,10 @@ const Dashboard = () => {
 
       setMessage({ type: 'success', text: 'Reminder sent' });
 
-      const pendingRes = await fetchFn('/api/dashboard/pending-signatures');
+      const pendingRes = await authFetch('/api/dashboard/pending-signatures');
       if (pendingRes.ok) {
-        setPendingSignatures(await pendingRes.json());
+        const pendingData = await pendingRes.json();
+        setPendingSignatures(Array.isArray(pendingData) ? pendingData : []);
       }
     } catch (err) {
       setMessage({ type: 'error', text: err.message });

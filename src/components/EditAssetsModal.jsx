@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 function EditAssetsModal({ assignment, onClose, onSuccess }) {
   const [allAssets, setAllAssets] = useState([])
@@ -7,6 +8,7 @@ function EditAssetsModal({ assignment, onClose, onSuccess }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const { authFetch } = useAuth()
 
   useEffect(() => {
     fetchAssets()
@@ -18,11 +20,15 @@ function EditAssetsModal({ assignment, onClose, onSuccess }) {
 
   const fetchAssets = async () => {
     try {
-      const response = await fetch('/api/assets')
+      const response = await authFetch('/api/assets')
+      if (!response.ok) {
+        throw new Error('Failed to fetch assets')
+      }
       const data = await response.json()
-      setAllAssets(data)
+      setAllAssets(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Failed to fetch assets:', error)
+      setAllAssets([])
     } finally {
       setLoading(false)
     }
@@ -44,7 +50,7 @@ function EditAssetsModal({ assignment, onClose, onSuccess }) {
 
     setSaving(true)
     try {
-      const response = await fetch(`/api/handover/assignments/${assignment.id}/assets`, {
+      const response = await authFetch(`/api/handover/assignments/${assignment.id}/assets`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'

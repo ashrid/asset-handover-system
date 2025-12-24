@@ -69,24 +69,22 @@ function Header({ currentPage, setCurrentPage }) {
     <header className={`header-premium sticky top-0 z-40 mb-4 md:mb-8 animate-fadeIn transition-all duration-300 ${isScrolled ? 'header-minimized' : ''}`}>
       <div className={`max-w-7xl mx-auto px-4 relative transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4 md:py-6'}`}>
         {/* Mobile Hamburger Button */}
-        <div className="lg:hidden absolute top-0 right-0 pt-4 pr-4 z-50">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="inline-flex items-center justify-center p-2 rounded-md text-text-secondary hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
-            aria-controls="mobile-menu"
-            aria-expanded={isMenuOpen}
-          >
-            <span className="sr-only">Open main menu</span>
-            {isMenuOpen ? (
-              <i className="fas fa-times text-xl" aria-hidden="true"></i>
-            ) : (
-              <i className="fas fa-bars text-xl" aria-hidden="true"></i>
-            )}
-          </button>
-        </div>
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="lg:hidden absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-lg text-text-primary hover:bg-black/5 active:bg-black/10 transition-colors"
+          aria-controls="mobile-menu"
+          aria-expanded={isMenuOpen}
+        >
+          <span className="sr-only">Open main menu</span>
+          {isMenuOpen ? (
+            <i className="fas fa-times text-xl" aria-hidden="true"></i>
+          ) : (
+            <i className="fas fa-bars text-xl" aria-hidden="true"></i>
+          )}
+        </button>
 
-        {/* Title Section - with padding for hamburger menu on mobile */}
-        <div className={`text-center pr-12 lg:pr-0 transition-all duration-300 ${isScrolled ? 'lg:flex lg:items-center lg:justify-between lg:text-left' : ''}`}>
+        {/* Title Section - symmetric padding for hamburger menu on mobile */}
+        <div className={`text-center px-12 lg:px-0 transition-all duration-300 ${isScrolled ? 'lg:flex lg:items-center lg:justify-between lg:text-left' : ''}`}>
           <div>
             <h1 className={`font-bold gradient-text tracking-tight transition-all duration-300 leading-tight ${
               isScrolled
@@ -231,7 +229,11 @@ function Header({ currentPage, setCurrentPage }) {
               <button
                 key={item.path}
                 onClick={() => handleNavigation(item.path.substring(1), item.path)}
-                className={`w-full nav-button flex items-center gap-3 p-3 text-base ${isActive(item.path) ? 'active' : ''}`}
+                className={`w-full flex items-center gap-3 p-3 text-base rounded-lg font-medium transition-all ${
+                  isActive(item.path)
+                    ? 'bg-primary text-white shadow-md'
+                    : 'bg-card text-text-secondary hover:bg-primary-light hover:text-primary border border-border'
+                }`}
               >
                 <i className={`fas ${item.icon} w-6 text-center`}></i>
                 <span>{item.label}</span>

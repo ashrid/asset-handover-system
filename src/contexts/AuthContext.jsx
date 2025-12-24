@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -15,6 +15,9 @@ export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Lock to prevent duplicate OTP verification calls
+  const verifyOTPLock = useRef(false);
 
   // Initialize auth state from refresh token on mount
   useEffect(() => {
@@ -67,6 +70,13 @@ export const AuthProvider = ({ children }) => {
 
   // Verify OTP and complete login
   const verifyOTP = useCallback(async (employeeId, otpCode) => {
+    // Prevent duplicate calls - this is the ultimate guard
+    if (verifyOTPLock.current) {
+      console.log('[AuthContext] verifyOTP blocked - already in progress');
+      return { blocked: true };
+    }
+    verifyOTPLock.current = true;
+
     setError(null);
     try {
       const response = await fetch('/api/auth/verify-otp', {
@@ -87,6 +97,7 @@ export const AuthProvider = ({ children }) => {
       return data;
     } catch (err) {
       setError(err.message);
+      verifyOTPLock.current = false; // Reset on error to allow retry
       throw err;
     }
   }, []);
@@ -138,6 +149,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setAccessToken(null);
       setUser(null);
+      verifyOTPLock.current = false; // Reset lock so user can log in again
     }
   }, [accessToken]);
 
@@ -159,6 +171,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setAccessToken(null);
       setUser(null);
+      verifyOTPLock.current = false; // Reset lock so user can log in again
     }
   }, [accessToken]);
 

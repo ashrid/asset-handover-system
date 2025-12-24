@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '../contexts/ToastContext'
+import { useAuth } from '../contexts/AuthContext'
 import Skeleton from '../components/Skeleton'
 import AssetForm from '../components/AssetForm'
 import AssetList from '../components/AssetList'
@@ -12,6 +13,7 @@ function AssetsPage() {
   const [showForm, setShowForm] = useState(false)
   const [showImportModal, setShowImportModal] = useState(false)
   const { addToast } = useToast()
+  const { authFetch } = useAuth()
   const [searchFilter, setSearchFilter] = useState('')
 
   useEffect(() => {
@@ -20,11 +22,15 @@ function AssetsPage() {
 
   const fetchAssets = async () => {
     try {
-      const response = await fetch('/api/assets')
+      const response = await authFetch('/api/assets')
+      if (!response.ok) {
+        throw new Error('Failed to fetch assets')
+      }
       const data = await response.json()
-      setAssets(data)
+      setAssets(Array.isArray(data) ? data : [])
     } catch (error) {
-      addToast('error', 'Failed to fetch assets')
+      addToast('error', error.message || 'Failed to fetch assets')
+      setAssets([])
     } finally {
       setLoading(false)
     }
@@ -35,7 +41,7 @@ function AssetsPage() {
       const url = editingAsset ? `/api/assets/${editingAsset.id}` : '/api/assets'
       const method = editingAsset ? 'PUT' : 'POST'
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(assetData)
@@ -64,7 +70,7 @@ function AssetsPage() {
     if (!confirm('Are you sure you want to delete this asset?')) return
 
     try {
-      const response = await fetch(`/api/assets/${id}`, { method: 'DELETE' })
+      const response = await authFetch(`/api/assets/${id}`, { method: 'DELETE' })
       if (!response.ok) throw new Error('Failed to delete asset')
 
       addToast('success', 'Asset deleted successfully')
@@ -81,7 +87,7 @@ function AssetsPage() {
 
   const handleImportSuccess = async (parsedData) => {
     try {
-      const response = await fetch('/api/assets/bulk-import', {
+      const response = await authFetch('/api/assets/bulk-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assets: parsedData })

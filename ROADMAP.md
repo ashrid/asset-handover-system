@@ -23,7 +23,7 @@ Create a streamlined asset handover workflow where:
 ## ✅ Phase 1: Foundation (Complete)
 
 **Status:** ✅ Complete
-**Completion Date:** November 2024
+**Completion Date:** November 2025
 
 ### Features Implemented
 - ✅ Asset Management (CRUD operations)
@@ -53,7 +53,7 @@ Create a streamlined asset handover workflow where:
 ## ✅ Phase 2: Digital Signature Workflow (Complete)
 
 **Status:** ✅ Complete
-**Completion Date:** November 2024
+**Completion Date:** November 2025
 
 ### Features Implemented
 

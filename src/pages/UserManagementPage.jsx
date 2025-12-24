@@ -27,14 +27,19 @@ const UserManagementPage = () => {
   const fetchUsers = async () => {
     try {
       const response = await authFetch('/api/users');
+      if (!response.ok) {
+        throw new Error('Failed to load users');
+      }
       const data = await response.json();
       if (data.success) {
-        setUsers(data.users);
+        setUsers(Array.isArray(data.users) ? data.users : []);
       } else {
         addToast('error', data.error?.message || 'Failed to load users');
+        setUsers([]);
       }
     } catch (err) {
-      addToast('error', 'Failed to load users');
+      addToast('error', err.message || 'Failed to load users');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -43,12 +48,16 @@ const UserManagementPage = () => {
   const fetchAvailableEmployees = async () => {
     try {
       const response = await authFetch('/api/users/available/employees');
+      if (!response.ok) {
+        throw new Error('Failed to load available employees');
+      }
       const data = await response.json();
       if (data.success) {
-        setAvailableEmployees(data.employees);
+        setAvailableEmployees(Array.isArray(data.employees) ? data.employees : []);
       }
     } catch (err) {
       console.error('Failed to load available employees:', err);
+      setAvailableEmployees([]);
     }
   };
 
