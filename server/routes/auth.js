@@ -162,12 +162,14 @@ router.post('/verify-otp', authValidation.verifyOTP, async (req, res) => {
     logger.info({ userId: user.id, employeeId: employee_id }, 'User logged in successfully');
 
     // Set refresh token as httpOnly cookie
+    // Note: Using path '/' instead of '/api/auth' to ensure cookie is sent
+    // through Vite's dev proxy and on page refresh
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax', // 'lax' allows same-site navigation, 'strict' can block on page refresh
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/api/auth'
+      path: '/'
     });
 
     res.json({
@@ -209,7 +211,7 @@ router.post('/refresh', async (req, res) => {
     const tokenRecord = verifyRefreshToken(refreshToken);
 
     if (!tokenRecord) {
-      res.clearCookie('refreshToken', { path: '/api/auth' });
+      res.clearCookie('refreshToken', { path: '/' });
       return res.status(401).json({
         success: false,
         error: { message: 'Invalid refresh token', code: 'INVALID_REFRESH' }
@@ -225,7 +227,7 @@ router.post('/refresh', async (req, res) => {
     `).get(tokenRecord.user_id);
 
     if (!user || !user.is_active) {
-      res.clearCookie('refreshToken', { path: '/api/auth' });
+      res.clearCookie('refreshToken', { path: '/' });
       return res.status(401).json({
         success: false,
         error: { message: 'User not found or inactive', code: 'USER_INVALID' }
@@ -268,7 +270,7 @@ router.post('/logout', authenticateToken, (req, res) => {
       revokeRefreshToken(refreshToken);
     }
 
-    res.clearCookie('refreshToken', { path: '/api/auth' });
+    res.clearCookie('refreshToken', { path: '/' });
 
     logger.info({ userId: req.user.userId }, 'User logged out');
 
@@ -289,7 +291,7 @@ router.post('/logout', authenticateToken, (req, res) => {
 router.post('/logout-all', authenticateToken, (req, res) => {
   try {
     revokeAllUserTokens(req.user.userId);
-    res.clearCookie('refreshToken', { path: '/api/auth' });
+    res.clearCookie('refreshToken', { path: '/' });
 
     logger.info({ userId: req.user.userId }, 'User logged out from all devices');
 

@@ -127,35 +127,35 @@ function ExportButton({ assignments, disabled }) {
 
           {/* Dropdown */}
           <div className="absolute z-20 right-0 mt-2 w-48 bg-card-bg border border-border rounded-lg shadow-lg">
-            <button
-              type="button"
-              onClick={exportToExcel}
-              className="w-full text-left px-4 py-3 hover:bg-hover-bg transition-colors flex items-center gap-3"
-            >
-              <i className="fas fa-file-excel text-green-600"></i>
-              <div>
-                <div className="font-medium text-text-primary">Excel (.xlsx)</div>
-                <div className="text-xs text-text-light">Formatted spreadsheet</div>
-              </div>
-            </button>
+          <button
+            type="button"
+            onClick={exportToExcel}
+            className="w-full text-left px-4 py-3 hover:bg-hover-bg transition-colors flex items-center gap-3"
+          >
+            <i className="fas fa-file-excel" style={{ color: 'var(--theme-success)' }}></i>
+            <div>
+              <div className="font-medium text-text-primary">Excel (.xlsx)</div>
+              <div className="text-xs text-text-light">Formatted spreadsheet</div>
+            </div>
+          </button>
 
-            <button
-              type="button"
-              onClick={exportToCSV}
-              className="w-full text-left px-4 py-3 hover:bg-hover-bg transition-colors flex items-center gap-3 border-t border-border"
-            >
-              <i className="fas fa-file-csv text-blue-600"></i>
-              <div>
-                <div className="font-medium text-text-primary">CSV (.csv)</div>
-                <div className="text-xs text-text-light">Universal format</div>
-              </div>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={exportToCSV}
+            className="w-full text-left px-4 py-3 hover:bg-hover-bg transition-colors flex items-center gap-3 border-t border-border"
+          >
+            <i className="fas fa-file-csv" style={{ color: 'var(--theme-info)' }}></i>
+            <div>
+              <div className="font-medium text-text-primary">CSV (.csv)</div>
+              <div className="text-xs text-text-light">Universal format</div>
+            </div>
+          </button>
+        </div>
         </>
       )}
 
       {disabled && (
-        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-3 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap pointer-events-none">
+        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 px-3 py-1 text-white text-xs rounded whitespace-nowrap pointer-events-none" style={{ backgroundColor: 'var(--theme-textPrimary)' }}>
           No data to export
         </div>
       )}

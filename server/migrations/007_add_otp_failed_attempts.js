@@ -5,14 +5,7 @@
  * allowing automatic invalidation after too many wrong attempts.
  */
 
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '../assets.db');
-
-const db = new Database(dbPath);
+import db from '../database.js';
 
 console.log('Running migration: Add failed_attempts column to otp_codes table...');
 

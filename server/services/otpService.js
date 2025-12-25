@@ -35,6 +35,13 @@ export function createOTP(userId, ipAddress = null, userAgent = null) {
 
   logger.info({ userId, otpId: result.lastInsertRowid }, 'OTP created');
 
+  // DEV ONLY: Log OTP to console for easy testing
+  if (!isProduction) {
+    console.log('\n' + '='.repeat(50));
+    console.log(`🔑 DEV OTP CODE: ${code}`);
+    console.log('='.repeat(50) + '\n');
+  }
+
   return { code, expiresAt };
 }
 

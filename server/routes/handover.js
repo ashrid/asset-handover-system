@@ -80,7 +80,8 @@ router.post('/', requireStaff, handoverValidation.create, async (req, res) => {
     `).all(...asset_ids);
 
     // Generate signing URL
-    const signingUrl = `http://localhost:3000/sign/${signatureToken}`;
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const signingUrl = `${baseUrl}/sign/${signatureToken}`;
 
     // Send email with signing link to primary email
     await sendHandoverEmail({
@@ -441,7 +442,8 @@ router.post('/resend/:id', requireStaff, handoverValidation.resend, async (req, 
     `).all(id);
 
     // Generate signing URL
-    const signingUrl = `http://localhost:3000/sign/${assignment.signature_token}`;
+    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const signingUrl = `${baseUrl}/sign/${assignment.signature_token}`;
 
     // Resend email with signing link to primary email
     await sendHandoverEmail({

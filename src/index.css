@@ -1470,12 +1470,5 @@ body.compact-mode {
   border-radius: 3px;
 }
 
-/* Professional color overrides - muted tones */
-.compact-mode {
-  --theme-success: #22863a;
-  --theme-successLight: #dcffe4;
-  --theme-warning: #b08800;
-  --theme-warningLight: #fffbdd;
-  --theme-danger: #cb2431;
-  --theme-dangerLight: #ffeef0;
-}
+/* FIXED: Removed semantic color overrides in compact mode to maintain theme consistency
+   Compact mode now uses the same colors as the selected theme */

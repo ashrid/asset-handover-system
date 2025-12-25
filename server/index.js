@@ -22,8 +22,9 @@ import { authenticateToken, requireRole } from './middleware/auth.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Initialize Sentry (must be first)
-initSentry(app);
+// Initialize Sentry (async, must be first)
+// In dev without DSN, this skips loading Sentry entirely for faster startup
+await initSentry(app);
 
 // Security headers (early in middleware chain)
 app.use(securityHeaders);
@@ -102,7 +103,7 @@ app.post('/api/reminders/trigger', authenticateToken, requireRole('admin'), asyn
 app.use(notFoundHandler);
 
 // Sentry error handler (must be before custom error handler)
-setupSentryErrorHandler(app);
+await setupSentryErrorHandler(app);
 
 // Global error handler
 app.use(errorHandler);
@@ -112,10 +113,14 @@ const gracefulShutdown = (signal) => {
   logger.info({ signal }, 'Received shutdown signal, closing server...');
 
   // Close server
-  server.close(() => {
-    logger.info('HTTP server closed');
+  if (server) {
+    server.close(() => {
+      logger.info('HTTP server closed');
+      process.exit(0);
+    });
+  } else {
     process.exit(0);
-  });
+  }
 
   // Force close after 10 seconds
   setTimeout(() => {

@@ -48,8 +48,9 @@ const Toast = ({ id, type, message, duration = 5000, onRemove }) => {
         </div>
         <button
           onClick={() => onRemove(id)}
-          className="ml-2 text-lg leading-none opacity-60 hover:opacity-100 transition-opacity flex-shrink-0"
+          className="ml-2 text-xl leading-none opacity-70 hover:opacity-100 transition-opacity flex-shrink-0"
           aria-label="Dismiss"
+          style={{ color: 'var(--theme-textPrimary)' }}
         >
           ×
         </button>

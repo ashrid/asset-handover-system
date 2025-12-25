@@ -91,9 +91,9 @@ function SavedPresets({ currentFilters, onApplyPreset }) {
 
   // Save custom presets to localStorage whenever they change
   useEffect(() => {
-    if (presets.length > 0) {
-      localStorage.setItem('assignmentFilterPresets', JSON.stringify(presets))
-    }
+    // FIXED: Always save to localStorage, even if empty array
+    // This ensures localStorage is updated when all presets are deleted
+    localStorage.setItem('assignmentFilterPresets', JSON.stringify(presets))
   }, [presets])
 
   const handleSavePreset = () => {

@@ -97,8 +97,10 @@ export const AuthProvider = ({ children }) => {
       return data;
     } catch (err) {
       setError(err.message);
-      verifyOTPLock.current = false; // Reset on error to allow retry
       throw err;
+    } finally {
+      // Reset lock on both success and error to allow retry
+      verifyOTPLock.current = false;
     }
   }, []);
 

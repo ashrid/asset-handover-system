@@ -57,21 +57,24 @@ function Header({ currentPage, setCurrentPage }) {
   ].filter(item => item.roles.includes(user?.role));
 
   const getRoleBadgeColor = (role) => {
+    // FIXED: Use theme variables instead of hardcoded Tailwind classes for consistent theming
     switch (role) {
-      case 'admin': return 'bg-red-100 text-red-700 border-red-200';
-      case 'staff': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'viewer': return 'bg-gray-100 text-gray-700 border-gray-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'admin': return 'bg-danger-light text-danger border-danger';
+      case 'staff': return 'bg-info-light text-info border-info';
+      case 'viewer': return 'bg-primary-light text-primary border-primary';
+      default: return 'bg-primary-light text-primary border-primary';
     }
   };
 
   return (
     <header className={`header-premium sticky top-0 z-40 mb-4 md:mb-8 animate-fadeIn transition-all duration-300 ${isScrolled ? 'header-minimized' : ''}`}>
       <div className={`max-w-7xl mx-auto px-4 relative transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4 md:py-6'}`}>
-        {/* Mobile Hamburger Button */}
+        {/* Mobile Hamburger Button - position adjusts based on scroll state */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="lg:hidden absolute top-4 right-4 z-50 w-10 h-10 flex items-center justify-center rounded-lg text-text-primary hover:bg-black/5 active:bg-black/10 transition-colors"
+          className={`lg:hidden absolute right-4 z-50 w-10 h-10 flex items-center justify-center rounded-lg text-text-primary hover:bg-black/5 active:bg-black/10 transition-all duration-300 ${
+            isScrolled ? 'top-1' : 'top-4'
+          }`}
           aria-controls="mobile-menu"
           aria-expanded={isMenuOpen}
         >
@@ -143,7 +146,8 @@ function Header({ currentPage, setCurrentPage }) {
                     <div className="py-1" style={{ background: 'var(--theme-cardBackground)' }}>
                       <button
                         onClick={handleLogout}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                        className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors"
+                        style={{ color: 'var(--theme-danger)' }}
                       >
                         <i className="fas fa-sign-out-alt"></i>
                         Sign Out
@@ -194,7 +198,8 @@ function Header({ currentPage, setCurrentPage }) {
                   <div className="py-2" style={{ background: 'var(--theme-cardBackground)' }}>
                     <button
                       onClick={handleLogout}
-                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                      className="w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors"
+                      style={{ color: 'var(--theme-danger)' }}
                     >
                       <i className="fas fa-sign-out-alt w-5 text-center"></i>
                       Sign Out
@@ -231,9 +236,12 @@ function Header({ currentPage, setCurrentPage }) {
                 onClick={() => handleNavigation(item.path.substring(1), item.path)}
                 className={`w-full flex items-center gap-3 p-3 text-base rounded-lg font-medium transition-all ${
                   isActive(item.path)
-                    ? 'bg-primary text-white shadow-md'
-                    : 'bg-card text-text-secondary hover:bg-primary-light hover:text-primary border border-border'
+                    ? 'text-white shadow-md'
+                    : 'text-text-secondary hover:text-primary border border-border'
                 }`}
+                style={{
+                  backgroundColor: isActive(item.path) ? 'var(--theme-primary)' : 'var(--theme-cardBackground)'
+                }}
               >
                 <i className={`fas ${item.icon} w-6 text-center`}></i>
                 <span>{item.label}</span>
@@ -244,7 +252,8 @@ function Header({ currentPage, setCurrentPage }) {
               <ThemeSwitcher />
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors"
+                style={{ color: 'var(--theme-danger)' }}
               >
                 <i className="fas fa-sign-out-alt"></i>
                 Sign Out

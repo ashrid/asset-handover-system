@@ -318,7 +318,7 @@ function AssignmentsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-fadeIn">
 
-      <div className="premium-card p-8">
+      <div className="premium-card p-8 overflow-hidden">
         <h2 className="text-2xl font-bold mb-2 gradient-text">
           Asset Assignments
         </h2>
@@ -386,8 +386,8 @@ function AssignmentsPage() {
               </div>
             </div>
           ) : (
-            <div className="animate-fadeIn">
-              <table className="table-premium">
+            <div className="animate-fadeIn overflow-x-auto">
+              <table className="table-premium w-full min-w-[900px]">
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -472,71 +472,65 @@ function AssignmentsPage() {
                         </div>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <div className="flex gap-2 flex-nowrap">
                           <button
-                            className="btn-premium inline-flex items-center gap-2 text-sm py-2 px-4"
+                            className="btn-premium inline-flex items-center gap-1.5 text-sm py-1.5 px-3 whitespace-nowrap"
                             onClick={() => handleViewDetails(assignment.id)}
                             title="View details"
                           >
                             <i className="fas fa-eye"></i>
-                            <span>View</span>
+                            <span className="hidden lg:inline">View</span>
                           </button>
                           {!assignment.is_signed && !assignment.is_disputed && (
                             <button
-                              className="inline-flex items-center gap-2 text-sm py-2 px-4 rounded-lg font-medium transition-all duration-200"
+                              className="inline-flex items-center gap-1.5 text-sm py-1.5 px-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap"
                               style={{
                                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                color: 'white',
-                                border: 'none',
-                                cursor: 'pointer'
+                                color: 'white'
                               }}
                               onClick={() => handleEditAssets(assignment.id)}
                               title="Edit assigned assets"
                             >
                               <i className="fas fa-edit"></i>
-                              <span>Edit Assets</span>
+                              <span className="hidden xl:inline">Edit</span>
                             </button>
                           )}
                           {!!assignment.pdf_sent && !assignment.is_signed && !assignment.is_disputed && (
                             <button
-                              className="btn-secondary inline-flex items-center gap-2 text-sm py-2 px-4"
+                              className="btn-secondary inline-flex items-center gap-1.5 text-sm py-1.5 px-3 whitespace-nowrap"
                               onClick={() => handleResendEmail(assignment.id, assignment.employee_name)}
                               title="Resend signing email"
                             >
                               <i className="fas fa-paper-plane"></i>
-                              <span>Resend</span>
+                              <span className="hidden xl:inline">Resend</span>
                             </button>
                           )}
                           {!!assignment.is_signed && !assignment.is_disputed && !assignment.transfer_status && (
                             <button
-                              className="inline-flex items-center gap-2 text-sm py-2 px-4 rounded-lg font-medium transition-all duration-200"
+                              className="inline-flex items-center gap-1.5 text-sm py-1.5 px-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap"
                               style={{
                                 background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
-                                color: 'white',
-                                border: 'none',
-                                cursor: 'pointer'
+                                color: 'white'
                               }}
                               onClick={() => handleTransfer(assignment.id)}
                               title="Transfer assets to another employee"
                             >
                               <i className="fas fa-exchange-alt"></i>
-                              <span>Transfer</span>
+                              <span className="hidden xl:inline">Transfer</span>
                             </button>
                           )}
                           {!assignment.is_signed && (
                             <button
-                              className="inline-flex items-center gap-2 text-sm py-2 px-4 rounded-lg font-medium transition-all duration-200"
+                              className="inline-flex items-center gap-1.5 text-sm py-1.5 px-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap"
                               style={{
                                 background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                                color: 'white',
-                                border: 'none',
-                                cursor: 'pointer'
+                                color: 'white'
                               }}
                               onClick={() => handleDeleteAssignment(assignment.id, assignment.employee_name)}
                               title="Delete assignment"
                             >
                               <i className="fas fa-trash"></i>
-                              <span>Delete</span>
+                              <span className="hidden xl:inline">Delete</span>
                             </button>
                           )}
                         </div>

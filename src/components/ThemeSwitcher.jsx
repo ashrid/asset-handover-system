@@ -48,7 +48,7 @@ function ThemeSwitcher({ compact = false }) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 rounded-xl shadow-2xl bg-card border border overflow-hidden z-50 animate-scaleIn">
+        <div className="fixed sm:absolute inset-x-4 sm:inset-x-auto sm:right-0 top-auto sm:top-auto mt-2 sm:w-80 rounded-xl shadow-2xl bg-card border border-border overflow-hidden z-50 animate-scaleIn max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
           {/* Display Mode Toggle */}
           <div className="p-3 border-b border-border">
             <div className="text-xs font-bold uppercase tracking-wider text-text-light mb-2">

@@ -1,4 +1,3 @@
-import puppeteer from 'puppeteer';
 import Handlebars from 'handlebars';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -6,6 +5,16 @@ import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Lazy-load puppeteer for faster server startup
+// Puppeteer (~300MB with Chromium) is only loaded when generating PDFs
+let puppeteerModule = null;
+const getPuppeteer = async () => {
+  if (!puppeteerModule) {
+    puppeteerModule = await import('puppeteer');
+  }
+  return puppeteerModule.default;
+};
 
 // Register Handlebars helpers
 Handlebars.registerHelper('add', function(a, b) {
@@ -21,10 +30,16 @@ Handlebars.registerHelper('formatDate', function(dateString) {
   return `${day}-${month}-${year}`;
 });
 
-// Load and compile template once
-const templatePath = join(__dirname, '../templates/handover-template.html');
-const templateSource = readFileSync(templatePath, 'utf-8');
-const template = Handlebars.compile(templateSource);
+// Lazy-load and compile template on first use
+let compiledTemplate = null;
+const getTemplate = () => {
+  if (!compiledTemplate) {
+    const templatePath = join(__dirname, '../templates/handover-template.html');
+    const templateSource = readFileSync(templatePath, 'utf-8');
+    compiledTemplate = Handlebars.compile(templateSource);
+  }
+  return compiledTemplate;
+};
 
 /**
  * Generate handover PDF using Puppeteer and HTML template
@@ -91,7 +106,8 @@ export async function generateHandoverPDF({ employee, assets, signature = null }
       };
     }
 
-    // Render template with data
+    // Render template with data (lazy-loaded)
+    const template = getTemplate();
     const html = template({
       logo: logoBase64,
       date: currentDate,
@@ -108,29 +124,33 @@ export async function generateHandoverPDF({ employee, assets, signature = null }
       signature: signatureData
     });
 
-    // Launch Puppeteer and generate PDF
+    // Launch Puppeteer and generate PDF (lazy-loaded)
+    const puppeteer = await getPuppeteer();
     const browser = await puppeteer.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '15mm',
-        right: '15mm',
-        bottom: '15mm',
-        left: '15mm'
-      }
-    });
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '15mm',
+          right: '15mm',
+          bottom: '15mm',
+          left: '15mm'
+        }
+      });
 
-    await browser.close();
-
-    return pdfBuffer;
+      return pdfBuffer;
+    } finally {
+      // Ensure browser is always closed, even if an error occurs
+      await browser.close();
+    }
   } catch (error) {
     console.error('PDF Generation Error:', error);
     throw error;

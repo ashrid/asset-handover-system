@@ -62,20 +62,24 @@ function AssetList({ assets, onEdit, onDelete }) {
                 )}
               </td>
               <td>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-nowrap">
                   <button
-                    className="px-3 py-1.5 rounded-lg bg-info text-white hover:shadow-md hover:-translate-y-0.5 transition-all text-sm font-medium flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg text-white hover:shadow-md hover:-translate-y-0.5 transition-all text-sm font-medium inline-flex items-center gap-1 whitespace-nowrap"
+                    style={{ backgroundColor: 'var(--theme-info)' }}
                     onClick={() => onEdit(asset)}
+                    title="Edit asset"
                   >
                     <i className="fas fa-edit"></i>
-                    <span>Edit</span>
+                    <span className="hidden sm:inline">Edit</span>
                   </button>
                   <button
-                    className="px-3 py-1.5 rounded-lg bg-danger text-white hover:shadow-md hover:-translate-y-0.5 transition-all text-sm font-medium flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg text-white hover:shadow-md hover:-translate-y-0.5 transition-all text-sm font-medium inline-flex items-center gap-1 whitespace-nowrap"
+                    style={{ backgroundColor: 'var(--theme-danger)' }}
                     onClick={() => onDelete(asset.id)}
+                    title="Delete asset"
                   >
                     <i className="fas fa-trash"></i>
-                    <span>Delete</span>
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
                 </div>
               </td>
